@@ -12,8 +12,11 @@
 		var socket = {};
 		
 		let draws = {};
+
+		let drawing = false;
 		
-		let clientSandArray = {};
+		let clientSandObject = {};
+		let clientSandArray = [];
 
 		const connectSocket = () => {
 			socket = io.connect();
@@ -27,29 +30,43 @@
 				chat.value = `${data.value}`;
 			});
 			
-			socket.on('drawFromServer', (data) => {
-				console.log(data);
-				handleMessage(data);
-			});
-			
 			socket.on('fullArray', (data) => {
 				//console.log(data);
-				clientSandArray = data.value; // Import the sandArray in full (specifically for first entering the room)
+				//clientSandObject = data.value; // Import the sandArray in full (specifically for first entering the room)
+				clientSandArray = data.value;
+				console.log(clientSandArray);
 				draw();
+			});
+			
+			// handle sandArray updates
+			socket.on('arrayUpdates', (data) => {
+				//console.log(data);
+				
+				let changeListKeys = Object.keys(data);
+				
+				// place each change in the local copy
+				for (let i = 0; i < changeListKeys.length; i++){
+					//console.log(data);
+					const tile = data[changeListKeys[i]];
+					
+					// Assign the tile to the spot given by the server.
+					clientSandArray[tile.x][tile.y] = tile.type;
+				}
+				
+				draw(); // Call draw to update with the new update
 			});
 		};
 		
 		const draw = () => {
-			console.log("Draw called");
+			//console.log("Draw called");
 			ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-			let xKeys = Object.keys(clientSandArray);
-			let yKeys = Object.keys(clientSandArray[0]);
+			//let xKeys = Object.keys(clientSandObject);
+			//let yKeys = Object.keys(clientSandObject[0]);
 			
 			// fill canvas with the current array values
-			for (let lx = 0; lx < xKeys.length; lx++){
-				console.log("test " + yKeys.length);
-				for (let ly = 0; ly < yKeys.length; ly++){
+			for (let lx = 0; lx < clientSandArray.length; lx++){
+				for (let ly = 0; ly < clientSandArray[0].length; ly++){
 					
 					if(clientSandArray[lx][ly] === 1){
 						ctx.fillStyle = "#000000";
@@ -68,48 +85,53 @@
 					
 				}
 			}
-			
-			/*let keys = Object.keys(draws);
-			for (let i = 0; i < keys.length; i++){
-				const drawCall = draws[keys[i]];
+		};
+		
+		const setCalls = (event) => {console.log("test");
+			if(drawing)
+			{
+				const boundingClient = canvas.getBoundingClientRect();
+				const x = event.clientX - boundingClient.left;
+				const y = event.clientY - boundingClient.top;
 				
-				if(drawCall.color){
-					ctx.fillStyle = drawCall.color;
-				}
-				else{
-					ctx.fillStyle = "#bfbfbf";
-				}
+				//let time = new Date().getTime();
+				//draws[time] = {x: x, y: y, color: "#ff0000"};
+	
+				//time = new Date().getTime();
+				//let coords = {x: x, y: y};
 				
-				ctx.fillRect(drawCall.x, drawCall.y, 100, 100);
-			}*/
+				const tilesArray = {};
+				tilesArray[0] = {x: x, y: y, type: 2};
+				//tilesArray[1] = {x: x, y: y, type: 2};
+				
+				//console.log(tilesArray);
+				socket.emit('arrayUpdateToServer', tilesArray);
+	
+				//socket.emit('draw', {time: time, coords: coords});
+				
+				draw();
+			}
 		};
 		
-		const setCalls = (event) => {
-			const boundingClient = canvas.getBoundingClientRect();
-			const x = event.clientX - boundingClient.left;
-			const y = event.clientY - boundingClient.top;
-			
-			let time = new Date().getTime();
-			draws[time] = {x: x, y: y, color: "#ff0000"};
-
-			time = new Date().getTime();
-			let coords = {x: x, y: y};
-
-			socket.emit('draw', {time: time, coords: coords});
-			draw();
+		const activateDrawing = (event) => {
+			drawing = true;
+			console.log("draw activated");
 		};
 		
-		
-		const handleMessage = (data) => {
-			data.coords.color = "#0000ff"
-			draws[data.time] = data.coords;
-			draw();
+		const deactivateDrawing = (event) => {
+			drawing = false;
+			console.log("draw deactivated");
 		};
-		
 		
 		const init = () => {
 			connectSocket();
-			canvas.onmousedown = setCalls.bind(event);
+			//canvas.onmousedown = setCalls.bind(event);
+			canvas.onmousemove = setCalls.bind(event);
+			canvas.ontouchmove = setCalls.bind(event);
+			canvas.onmousedown = activateDrawing.bind(event);
+			canvas.onmouseup = deactivateDrawing.bind(event);
+			canvas.ontouchstart = activateDrawing.bind(event);
+			canvas.ontouchend = deactivateDrawing.bind(event);
 		};
 		
 		window.onload = init;
@@ -117,7 +139,7 @@
     </script>
 </head>
 <body>
-	<canvas id="canvas" width="400" height="400" style="border:1px solid #555555;">
+	<canvas id="canvas" width="400" height="400" style="border:1px solid #555555; touch-action: none;">
 		Your browser does not support the HTML5 canvas tag.
 	</canvas>
 </body>
