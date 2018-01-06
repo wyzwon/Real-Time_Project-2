@@ -10,59 +10,80 @@
 		let ctx = canvas.getContext('2d');
 		
 		var socket = {};
-		
-		let draws = {};
 
 		let drawing = false;
 		
+		let pixelSize = 4;
+		let suggestedPixelSize;
+
 		let clientSandObject = {};
 		let clientSandArray = [];
 
 		const connectSocket = () => {
 			socket = io.connect();
 			socket.on('connect', () => {
-				console.log('connecting');
+				console.log('connecting to server');
 				socket.emit('join', {});
 			});
 			
+			socket.on('disconnect', () => {
+				console.log('disconnected from server');
+			});
+
 			socket.on('msg', (data) => {
 				console.log(data);
 				chat.value = `${data.value}`;
 			});
 			
-			socket.on('fullArray', (data) => {
-				//console.log(data);
-				//clientSandObject = data.value; // Import the sandArray in full (specifically for first entering the room)
+			socket.on('setUp', (data) => {
+				// Import the sandArray in full (specifically for first entering the room)
 				clientSandArray = data.value;
-				console.log(clientSandArray);
+				
+				suggestedPixelSize = data.suggestedPixelSize;
+				if(suggestedPixelSize){
+					pixelSize = suggestedPixelSize;
+				}
+				
+				
+				// Set the canvas size to match sandArray
+				canvas.width = (clientSandArray.length * pixelSize);
+				canvas.height = (clientSandArray[0].length * pixelSize);
+				
+				draw();
+			});
+
+			socket.on('fullArray', (data) => {
+				// Import the sandArray in full (specifically for first entering the room)
+				clientSandArray = data.value;
+				
+				// Set the canvas size to match sandArray
+				canvas.width = (clientSandArray.length * pixelSize);
+				canvas.height = (clientSandArray[0].length * pixelSize);
+				
 				draw();
 			});
 			
 			// handle sandArray updates
 			socket.on('arrayUpdates', (data) => {
-				//console.log(data);
-				
+
 				let changeListKeys = Object.keys(data);
-				
+
 				// place each change in the local copy
 				for (let i = 0; i < changeListKeys.length; i++){
-					//console.log(data);
+
 					const tile = data[changeListKeys[i]];
-					
+
 					// Assign the tile to the spot given by the server.
 					clientSandArray[tile.x][tile.y] = tile.type;
 				}
-				
-				draw(); // Call draw to update with the new update
+
+				draw(); // draw the updated scene
 			});
 		};
 		
 		const draw = () => {
 			//console.log("Draw called");
 			ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-			//let xKeys = Object.keys(clientSandObject);
-			//let yKeys = Object.keys(clientSandObject[0]);
 			
 			// fill canvas with the current array values
 			for (let lx = 0; lx < clientSandArray.length; lx++){
@@ -81,24 +102,22 @@
 						ctx.fillStyle = "#0000ff";
 					}
 					
-					ctx.fillRect(lx * 4, ly * 4, 4, 4);
+					ctx.fillRect(lx * pixelSize, ly * pixelSize, pixelSize, pixelSize);
 					
 				}
 			}
 		};
 		
-		const setCalls = (event) => {console.log("test");
+		const setCalls = (event) => {
 			if(drawing)
 			{
 				const boundingClient = canvas.getBoundingClientRect();
-				const x = event.clientX - boundingClient.left;
-				const y = event.clientY - boundingClient.top;
-				
-				//let time = new Date().getTime();
-				//draws[time] = {x: x, y: y, color: "#ff0000"};
-	
-				//time = new Date().getTime();
-				//let coords = {x: x, y: y};
+				let x = event.clientX - boundingClient.left;
+				let y = event.clientY - boundingClient.top;
+
+				x = Math.floor((x / canvas.width) * clientSandArray.length);
+				y = Math.floor((y / canvas.height) * clientSandArray[0].length);
+
 				
 				const tilesArray = {};
 				tilesArray[0] = {x: x, y: y, type: 2};
