@@ -16,8 +16,8 @@
 		let pixelSize = 4;
 		let suggestedPixelSize;
 
-		let clientSandObject = {};
 		let clientSandArray = [];
+		let blankBufferArray = [];
 
 		const connectSocket = () => {
 			socket = io.connect();
@@ -44,6 +44,11 @@
 					pixelSize = suggestedPixelSize;
 				}
 				
+				blankBufferArray = clientSandArray.map(row => row.slice());
+				for (let i = 0; i < blankBufferArray.length; i++) {
+					blankBufferArray[i] = new Array(blankBufferArray[0].length);
+					blankBufferArray[i].fill(1);
+				}
 				
 				// Set the canvas size to match sandArray
 				canvas.width = (clientSandArray.length * pixelSize);
@@ -61,6 +66,11 @@
 				canvas.height = (clientSandArray[0].length * pixelSize);
 				
 				draw();
+			});
+			
+			// Clear the local scene when server clears the main scene
+			socket.on('clearScene', (data) => {
+				clientSandArray = blankBufferArray.map(row => row.slice());
 			});
 			
 			// handle sandArray updates
@@ -82,7 +92,6 @@
 		};
 		
 		const draw = () => {
-			//console.log("Draw called");
 			ctx.clearRect(0, 0, canvas.width, canvas.height);
 			
 			// fill canvas with the current array values
@@ -101,6 +110,10 @@
 					else if(clientSandArray[lx][ly] === 4){
 						ctx.fillStyle = "#0000ff";
 					}
+					/*else{
+						console.log("Unrecognized type");
+						console.log(clientSandArray[lx][ly]);
+					}*/
 					
 					ctx.fillRect(lx * pixelSize, ly * pixelSize, pixelSize, pixelSize);
 					
@@ -118,15 +131,10 @@
 				x = Math.floor((x / canvas.width) * clientSandArray.length);
 				y = Math.floor((y / canvas.height) * clientSandArray[0].length);
 
-				
 				const tilesArray = {};
 				tilesArray[0] = {x: x, y: y, type: 2};
-				//tilesArray[1] = {x: x, y: y, type: 2};
 				
-				//console.log(tilesArray);
 				socket.emit('arrayUpdateToServer', tilesArray);
-	
-				//socket.emit('draw', {time: time, coords: coords});
 				
 				draw();
 			}
@@ -134,12 +142,17 @@
 		
 		const activateDrawing = (event) => {
 			drawing = true;
-			console.log("draw activated");
+			//console.log("draw activated");
 		};
 		
 		const deactivateDrawing = (event) => {
 			drawing = false;
-			console.log("draw deactivated");
+			//console.log("draw deactivated");
+		};
+		
+		const clearRequestCall = (e) => {
+			// Send the request to clear the scene
+			socket.emit('clearRequest', {});
 		};
 		
 		const init = () => {
@@ -151,21 +164,21 @@
 			canvas.onmouseup = deactivateDrawing.bind(event);
 			canvas.ontouchstart = activateDrawing.bind(event);
 			canvas.ontouchend = deactivateDrawing.bind(event);
+			
+			const clearRequest = document.querySelector("#clear");
+			clearRequest.addEventListener('click', clearRequestCall);
 		};
 		
 		window.onload = init;
-		//setCalls();
     </script>
 </head>
 <body>
 	<canvas id="canvas" width="400" height="400" style="border:1px solid #555555; touch-action: none;">
 		Your browser does not support the HTML5 canvas tag.
 	</canvas>
+	<input id="clear" type='button' value='clear'/>
 </body>
 </html>
-
-
-
 
 
 

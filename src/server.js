@@ -11,10 +11,10 @@ const index = fs.readFileSync(`${__dirname}/../client/index.html`);
 
 const sandArrayX = 150;
 const sandArrayY = 100;
-// const sandObject = {}; // This is the master array of the sand data
+const suggestedPixelSize = 4;
 
 // Instantiate the entire map as empty air cells
-const sandArray = new Array(sandArrayX);
+let sandArray = new Array(sandArrayX);
 for (let i = 0; i < sandArray.length; i++) {
   sandArray[i] = new Array(sandArrayY);
   sandArray[i].fill(1);
@@ -22,20 +22,30 @@ for (let i = 0; i < sandArray.length; i++) {
 
 let incomingChangeBuffer = {};
 let outGoingChangeBuffer = {};
-//changeBuffer = {};
 
 // Instantiate an array of empty cells to reset the changeBufferArray with.
 const blankBufferArray = new Array(sandArrayX);
 for (let i = 0; i < sandArray.length; i++) {
   blankBufferArray[i] = new Array(sandArrayY);
-  blankBufferArray[i].fill(0);
-  // blankBufferArray[i].fill(Math.floor(Math.random() * (5)));
+  blankBufferArray[i].fill(1);
+  // blankBufferArray[i].fill(Math.floor(Math.random() * (4)) + 1);
 }
 
 // https://stackoverflow.com/questions/25492329/is-array-slice-enough-to-handle-a-multidimensional-array-in-javascript
 // Stores requested changes between consolidations and is instantiated and reset to all 0 values
-//const changeBufferArray = blankBufferArray.map(row => row.slice());
+const changeBufferArray = blankBufferArray.map(row => row.slice());
 
+const tileChanger = (tile) => {
+  // Record the changes that will be passed to the users
+  outGoingChangeBuffer[`${tile.x},${tile.y}`] = tile;
+
+  // Commit the changes to the main scene array
+  sandArray[tile.x][tile.y] = tile.type;
+};
+
+const updateSand = () => {
+
+};
 
 const onRequest = (request, response) => {
   response.writeHead(200, { 'Content-Type': 'text/html' });
@@ -58,7 +68,7 @@ const onJoined = (sock) => {
     console.log(`${socket.id} joined room1`);
 
     // Send the current map data to the new user along with the suggested size of pixels
-    socket.emit('setUp', { value: sandArray, suggestedPixelSize: 4 });
+    socket.emit('setUp', { value: sandArray, suggestedPixelSize });
   });
 };
 
@@ -86,17 +96,25 @@ const onArrayUpdateToServer = (sock) => {
 
     // place each change in the local copy
     for (let i = 0; i < changeListKeys.length; i++) {
-
       const tile = data[changeListKeys[i]];
 
       // Assign the tile to the corresponding spot if it exists.
       if ((tile.x < sandArrayX) && (tile.y < sandArrayY) && (tile.x >= 0) && (tile.y >= 0)) {
-
         // add the changes to the changeBuffer
         incomingChangeBuffer[`${tile.x},${tile.y}`] = tile;
-
       }
     }
+  });
+};
+
+const onClearRequest = (sock) => {
+  const socket = sock;
+
+  socket.on('clearRequest', (data) => {
+
+    sandArray = blankBufferArray.map(row => row.slice());
+	
+	io.sockets.in('room1').emit('clearScene', {});
   });
 };
 
@@ -121,52 +139,31 @@ io.sockets.on('connection', (socket) => {
   onDraw(socket);
   onDisconnect(socket);
   onArrayUpdateToServer(socket);
+  onClearRequest(socket);
 });
 
 setInterval(() => {
-
   const bufferListKeys = Object.keys(incomingChangeBuffer);
 
   // place each change in the local copy
   for (let i = 0; i < bufferListKeys.length; i++) {
-
-	// Add the tile to the array
-	tileChanger(incomingChangeBuffer[bufferListKeys[i]]);
+    // Add the tile to the array
+    tileChanger(incomingChangeBuffer[bufferListKeys[i]]);
   }
-  
+
   const tilesArray = {};
 
   tilesArray[0] = { x: 2, y: 67, type: Math.floor(Math.random() * (5)) };
   tilesArray[1] = { x: 30, y: 22, type: Math.floor(Math.random() * (5)) };
-  outGoingChangeBuffer["2,67"] = { x: 2, y: 67, type: Math.floor(Math.random() * (5)) };
-  outGoingChangeBuffer["30,22"] = { x: 30, y: 22, type: Math.floor(Math.random() * (5)) };
+  outGoingChangeBuffer['2,67'] = { x: 2, y: 67, type: Math.floor(Math.random() * (4)) + 1 };
+  outGoingChangeBuffer['30,22'] = { x: 30, y: 22, type: Math.floor(Math.random() * (4)) + 1 };
 
   io.sockets.in('room1').emit('arrayUpdates', outGoingChangeBuffer);
-  
+
   // Clear the buffers for use in the next cycle
   incomingChangeBuffer = {};
   outGoingChangeBuffer = {};
 }, 70);
 
-const tileChanger = (tile) => {
-	// Record the changes that will be passed to the users
-	outGoingChangeBuffer[`${tile.x},${tile.y}`] = tile;
-	
-	// Commit the changes to the main scene array
-	sandArray[tile.x][tile.y] = tile.type;
-};
-
 console.log('Websocket server started');
-
-
-
-
-
-
-
-
-
-
-
-
 
