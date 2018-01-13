@@ -19,6 +19,10 @@
 		let clientSandArray = [];
 		let blankBufferArray = [];
 
+		let tilesDict = {};
+		
+		let drawColor = Math.floor(Math.random() * (4)) + 1;
+		
 		const connectSocket = () => {
 			socket = io.connect();
 			socket.on('connect', () => {
@@ -91,6 +95,12 @@
 			});
 		};
 		
+		setInterval(() => {
+			socket.emit('arrayUpdateToServer', tilesDict);
+			
+			tilesDict = {};
+		}, 70);
+		
 		const draw = () => {
 			ctx.clearRect(0, 0, canvas.width, canvas.height);
 			
@@ -110,10 +120,11 @@
 					else if(clientSandArray[lx][ly] === 4){
 						ctx.fillStyle = "#0000ff";
 					}
-					/*else{
-						console.log("Unrecognized type");
-						console.log(clientSandArray[lx][ly]);
-					}*/
+					else{
+						ctx.fillStyle = "#ffffff";
+						//console.log("Unrecognized type");
+						//console.log(clientSandArray[lx][ly]);
+					}
 					
 					ctx.fillRect(lx * pixelSize, ly * pixelSize, pixelSize, pixelSize);
 					
@@ -125,16 +136,13 @@
 			if(drawing)
 			{
 				const boundingClient = canvas.getBoundingClientRect();
-				let x = event.clientX - boundingClient.left;
-				let y = event.clientY - boundingClient.top;
 
-				x = Math.floor((x / canvas.width) * clientSandArray.length);
-				y = Math.floor((y / canvas.height) * clientSandArray[0].length);
-
-				const tilesArray = {};
-				tilesArray[0] = {x: x, y: y, type: 2};
+				// Calculate the mouse position
+				let x = Math.floor(((event.clientX - boundingClient.left) / canvas.width) * clientSandArray.length);
+                let y = Math.floor(((event.clientY - boundingClient.top) / canvas.height) * clientSandArray[0].length);
 				
-				socket.emit('arrayUpdateToServer', tilesArray);
+				// Add the tile to the list to be sent to the server,
+				tilesDict[`${x},${y}`] = {x: x, y: y, type: drawColor};
 				
 				draw();
 			}

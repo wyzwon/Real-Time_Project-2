@@ -13,27 +13,31 @@ const sandArrayX = 150;
 const sandArrayY = 100;
 const suggestedPixelSize = 4;
 
+const sandVoid = 1;
+
 // Instantiate the entire map as empty air cells
 let sandArray = new Array(sandArrayX);
 for (let i = 0; i < sandArray.length; i++) {
   sandArray[i] = new Array(sandArrayY);
-  sandArray[i].fill(1);
+  sandArray[i].fill(sandVoid);
 }
 
 let incomingChangeBuffer = {};
 let outGoingChangeBuffer = {};
 
 // Instantiate an array of empty cells to reset the changeBufferArray with.
-const blankBufferArray = new Array(sandArrayX);
+const blankBufferArray = sandArray.map(row => row.slice());
+/* const blankBufferArray = new Array(sandArrayX);
 for (let i = 0; i < sandArray.length; i++) {
   blankBufferArray[i] = new Array(sandArrayY);
   blankBufferArray[i].fill(1);
   // blankBufferArray[i].fill(Math.floor(Math.random() * (4)) + 1);
-}
+} */
+
 
 // https://stackoverflow.com/questions/25492329/is-array-slice-enough-to-handle-a-multidimensional-array-in-javascript
 // Stores requested changes between consolidations and is instantiated and reset to all 0 values
-const changeBufferArray = blankBufferArray.map(row => row.slice());
+let oldScene = blankBufferArray.map(row => row.slice());
 
 const tileChanger = (tile) => {
   // Record the changes that will be passed to the users
@@ -43,9 +47,81 @@ const tileChanger = (tile) => {
   sandArray[tile.x][tile.y] = tile.type;
 };
 
-const updateSand = () => {
+const isFluid = (tile) => {
+  if (tile > 0) {
+    return true;
+  }
 
+  return false;
 };
+
+const updateSand = () => {
+  // Loop through all the cells in the scene
+  for (let sceneX = 0; sceneX < sandArray.length; sceneX++) { // x loop
+    for (let sceneY = 0; sceneY < sandArray[0].length; sceneY++) { // y loop
+      if (sandArray[sceneX][sceneY] !== sandVoid) {
+        // check if the particle is the same in both scenes and therefore possibly unmoved
+        if (sandArray[sceneX][sceneY] === oldScene[sceneX][sceneY]) {
+          // check if the particle is fluid
+          if (isFluid(sandArray[sceneX][sceneY])) {
+            let moved = false;
+            // check if the spot bellow it exists
+            if ((sceneY + 1) < sandArrayY) {
+              // check if the spot below is empty and if so move into it
+              if (sandArray[sceneX][sceneY + 1] === sandVoid) {
+                // sandArray[sceneX][sceneY + 1] = sandArray[sceneX][sceneY];
+                tileChanger({ x: sceneX, y: (sceneY + 1), type: oldScene[sceneX][sceneY] });
+                // sandArray[sceneX][sceneY] = sandVoid;
+                tileChanger({ x: sceneX, y: sceneY, type: sandVoid });
+                moved = true;
+              }
+
+
+              // Attempt to sink if denser then the particle below
+              else if (isFluid(oldScene[sceneX][sceneY + 1]) && oldScene[sceneX][sceneY] > oldScene[sceneX][sceneY + 1] && (Math.floor(Math.random() * (2)) === 1)) {
+                // sandArray[sceneX][sceneY + 1] = oldScene[sceneX][sceneY]
+                tileChanger({ x: sceneX, y: (sceneY + 1), type: oldScene[sceneX][sceneY] });
+                // sandArray[sceneX][sceneY] = oldScene[sceneX][sceneY + 1]
+                tileChanger({ x: sceneX, y: sceneY, type: oldScene[sceneX][sceneY + 1] });
+                moved = true;
+              }
+            }
+
+
+            // try to move left or right randomly
+            const dispersalDirection = (Math.floor(Math.random() * (2)) === 1);
+
+            // this block allows the same code to be used for movement in both directions by switching out the coordinate used
+            let directionMod;
+            if (dispersalDirection) {
+              directionMod = -1;
+            } else {
+              directionMod = 1;
+            }
+
+            // check if the tile is valid to move to
+            if ((((directionMod === -1) && (sceneX > 0)) || ((directionMod === 1) && (sceneX < sandArrayX - 1))) && (isFluid(sandArray[sceneX][sceneY]) || sandArray[sceneX][sceneY] === sandVoid) && !moved) {
+              // make sure the particle can be swapped
+              if ((oldScene[sceneX][sceneY] !== sandArray[sceneX + directionMod][sceneY]) && (oldScene[sceneX][sceneY] > oldScene[sceneX + directionMod][sceneY])) {
+                // print("\(sandArray[sceneX][sceneY]) , \(sandArray[sceneX + directionMod][sceneY])")
+
+                // sandArray[sceneX][sceneY] = oldScene[sceneX + directionMod][sceneY]
+                tileChanger({ x: sceneX, y: sceneY, type: oldScene[sceneX + directionMod][sceneY] });
+                // sandArray[sceneX + directionMod][sceneY] = oldScene[sceneX][sceneY]
+                tileChanger({ x: (sceneX + directionMod), y: sceneY, type: oldScene[sceneX][sceneY] });
+
+                // print("\(sandArray[sceneX][sceneY]) , \(sandArray[sceneX + directionMod][sceneY])\n")
+
+                moved = true;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+};
+
 
 const onRequest = (request, response) => {
   response.writeHead(200, { 'Content-Type': 'text/html' });
@@ -100,8 +176,11 @@ const onArrayUpdateToServer = (sock) => {
 
       // Assign the tile to the corresponding spot if it exists.
       if ((tile.x < sandArrayX) && (tile.y < sandArrayY) && (tile.x >= 0) && (tile.y >= 0)) {
-        // add the changes to the changeBuffer
-        incomingChangeBuffer[`${tile.x},${tile.y}`] = tile;
+        // make sure the tile is valid
+        if (tile.type) {
+          // add the changes to the changeBuffer
+          incomingChangeBuffer[`${tile.x},${tile.y}`] = tile;
+        }
       }
     }
   });
@@ -110,11 +189,10 @@ const onArrayUpdateToServer = (sock) => {
 const onClearRequest = (sock) => {
   const socket = sock;
 
-  socket.on('clearRequest', (data) => {
-
+  socket.on('clearRequest', () => {
     sandArray = blankBufferArray.map(row => row.slice());
-	
-	io.sockets.in('room1').emit('clearScene', {});
+
+    io.sockets.in('room1').emit('clearScene', {});
   });
 };
 
@@ -143,21 +221,27 @@ io.sockets.on('connection', (socket) => {
 });
 
 setInterval(() => {
-  const bufferListKeys = Object.keys(incomingChangeBuffer);
+  // Record the old frame to iterate through
+  oldScene = sandArray.map(row => row.slice());
 
+  // Run the sand simulation loop
+  updateSand();
+
+  const bufferListKeys = Object.keys(incomingChangeBuffer);
   // place each change in the local copy
   for (let i = 0; i < bufferListKeys.length; i++) {
     // Add the tile to the array
     tileChanger(incomingChangeBuffer[bufferListKeys[i]]);
   }
 
+  // Send a few tile changes through as a heartbeat
   const tilesArray = {};
-
   tilesArray[0] = { x: 2, y: 67, type: Math.floor(Math.random() * (5)) };
-  tilesArray[1] = { x: 30, y: 22, type: Math.floor(Math.random() * (5)) };
+  // tilesArray[1] = { x: 30, y: 22, type: Math.floor(Math.random() * (5)) };
   outGoingChangeBuffer['2,67'] = { x: 2, y: 67, type: Math.floor(Math.random() * (4)) + 1 };
-  outGoingChangeBuffer['30,22'] = { x: 30, y: 22, type: Math.floor(Math.random() * (4)) + 1 };
+  // outGoingChangeBuffer['30,22'] = { x: 30, y: 22, type: Math.floor(Math.random() * (4)) + 1 };
 
+  // Send the changes that happened this frame to the client windows
   io.sockets.in('room1').emit('arrayUpdates', outGoingChangeBuffer);
 
   // Clear the buffers for use in the next cycle
