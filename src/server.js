@@ -8,7 +8,7 @@ const port = process.env.PORT || process.env.NODE_PORT || 3000;
 // __dirname in node is the current directory
 // (in this case the same folder as the server js file)
 const index = fs.readFileSync(`${__dirname}/../client/index.html`);
-const sandClient = fs.readFileSync(`${__dirname}/../client/scripts/Sand.js`);
+//const sandClient = fs.readFileSync(`${__dirname}/../client/scripts/Sand.js`);
 const favicon = fs.readFileSync(`${__dirname}/../client/favicon.ico`);
 
 const sandArrayX = 150;
@@ -152,11 +152,11 @@ const onRequest = (request, response) => {
       response.write(index);
       response.end();
       break;
-    case '/scripts/Sand.js':
+    /*case '/scripts/Sand.js':
       response.writeHead(200, { 'Content-Type': 'text/javascript' });
       response.write(sandClient);
       response.end();
-      break;
+      break;*/
     case '/favicon.ico':
       response.writeHead(200, { 'Content-Type': 'image/x-icon' });
       response.write(favicon);
