@@ -21,7 +21,15 @@
 
 		let tilesDict = {};
 		
-		let drawColor = Math.floor(Math.random() * (4)) + 1;
+		let drawColor = parseInt(document.querySelector("#sandType").value);
+		console.log("Color: " + drawColor);
+		
+		let lastPosition = {};
+		const boundingClient = canvas.getBoundingClientRect();
+		// debug variables
+		//let r = 0;
+		//let g = 0;
+		//let b = 0;
 		
 		const connectSocket = () => {
 			socket = io.connect();
@@ -101,6 +109,89 @@
 			tilesDict = {};
 		}, 70);
 		
+		// calculate a line between two mouse points and add them to the buffer with the current draw color
+		const lineCalculator = (x0, y0, x1, y1) => {
+			let deltaX = x1 - x0;
+			let deltaY = y1 - y0;
+			
+			// filter out zero vectors
+			if(deltaX || deltaY){
+				
+				// quadrants 1 and 3
+				if (Math.abs(deltaX) > Math.abs(deltaY)){
+				
+					let deltaError = Math.abs(deltaY / deltaX);
+					let error = 0;
+					let y = y0;
+					
+					// quadrant 1
+					if(x1 > x0){
+
+						for(let x = x0; x <= x1; x++){
+							// Add the tile to the list to be sent to the server,
+							tilesDict[`${x},${y}`] = {x: x, y: y, type: drawColor};
+							
+							error = (error + deltaError);
+							while(error >= 0.5){
+								y = y + Math.sign(deltaY) * 1
+								error = error - 1;
+							}
+						}
+					}
+					// quadrant 3
+					else{
+						
+						for(let x = x0; x >= x1; x--){
+							// Add the tile to the list to be sent to the server,
+							tilesDict[`${x},${y}`] = {x: x, y: y, type: drawColor};
+							
+							error = (error + deltaError);
+							while(error >= 0.5){
+								y = y + Math.sign(deltaY) * 1
+								error = error - 1;
+							}
+						}
+					}
+				}
+				// quadrants 2 and 4
+				else{
+				
+					let deltaError = Math.abs(deltaX / deltaY);
+					let error = 0;
+					let x = x0;
+					
+					// quadrant 4
+					if(y1 > y0){
+
+						for(let y = y0; y <= y1; y++){
+							// Add the tile to the list to be sent to the server,
+							tilesDict[`${x},${y}`] = {x: x, y: y, type: drawColor};
+							
+							error = (error + deltaError);
+							while(error >= 0.5){
+								x = x + Math.sign(deltaX) * 1
+								error = error - 1;
+							}
+						}
+					}
+					// quadrant 2
+					else{
+
+						for(let y = y0; y >= y1; y--){
+							// Add the tile to the list to be sent to the server,
+							tilesDict[`${x},${y}`] = {x: x, y: y, type: drawColor};
+							
+							error = (error + deltaError);
+							while(error >= 0.5){
+								x = x + Math.sign(deltaX) * 1
+								error = error - 1;
+							}
+						}
+					}
+				}
+			}
+		};
+		
 		const draw = () => {
 			ctx.clearRect(0, 0, canvas.width, canvas.height);
 			
@@ -108,49 +199,70 @@
 			for (let lx = 0; lx < clientSandArray.length; lx++){
 				for (let ly = 0; ly < clientSandArray[0].length; ly++){
 					
-					if(clientSandArray[lx][ly] === 1){
-						ctx.fillStyle = "#000000";
-					}
-					else if(clientSandArray[lx][ly] === 2){
-						ctx.fillStyle = "#ff0000";
-					}
-					else if(clientSandArray[lx][ly] === 3){
-						ctx.fillStyle = "#00ff00";
-					}
-					else if(clientSandArray[lx][ly] === 4){
-						ctx.fillStyle = "#0000ff";
-					}
-					else{
-						ctx.fillStyle = "#ffffff";
-						//console.log("Unrecognized type");
-						//console.log(clientSandArray[lx][ly]);
+					switch(clientSandArray[lx][ly]){
+						case 1:
+							ctx.fillStyle = "#000000";
+						break;
+						
+						case 2:
+							ctx.fillStyle = "#EBEFA0";
+						break;
+						
+						case 3:
+							ctx.fillStyle = "#0000ff";
+						break;
+						
+						case 4:
+							ctx.fillStyle = "#ffffff";
+						break;
+						
+						case 5:
+							ctx.fillStyle = "#888888";
+						break;
+						
+						case 6:
+							ctx.fillStyle = "#AACCFF";
+						break;
+						
+						default:
+							// show errors tiles in red
+							ctx.fillStyle = "#ff0000";
 					}
 					
 					ctx.fillRect(lx * pixelSize, ly * pixelSize, pixelSize, pixelSize);
-					
 				}
 			}
+			//console.log(`${r},${g},${b}`);
+			//r = 0;
+			//g = 0;
+			//b = 0;
 		};
 		
 		const setCalls = (event) => {
 			if(drawing)
 			{
-				const boundingClient = canvas.getBoundingClientRect();
 
 				// Calculate the mouse position
-				let x = Math.floor(((event.clientX - boundingClient.left) / canvas.width) * clientSandArray.length);
-                let y = Math.floor(((event.clientY - boundingClient.top) / canvas.height) * clientSandArray[0].length);
+				let mouseX = Math.floor(((event.clientX - boundingClient.left) / canvas.width) * clientSandArray.length);
+                let mouseY = Math.floor(((event.clientY - boundingClient.top) / canvas.height) * clientSandArray[0].length);
 				
-				// Add the tile to the list to be sent to the server,
-				tilesDict[`${x},${y}`] = {x: x, y: y, type: drawColor};
+				// draw a line between the mouse points
+				lineCalculator(lastPosition.x, lastPosition.y, mouseX, mouseY);
 				
-				draw();
+				// Set this point as the starting point for the next line segment
+				lastPosition = {x: mouseX, y: mouseY};
 			}
 		};
 		
 		const activateDrawing = (event) => {
 			drawing = true;
-			//console.log("draw activated");
+			
+			// Calculate the mouse position
+			let mouseX = Math.floor(((event.clientX - boundingClient.left) / canvas.width) * clientSandArray.length);
+            let mouseY = Math.floor(((event.clientY - boundingClient.top) / canvas.height) * clientSandArray[0].length);
+			
+			// Set this point as the starting point for the line.
+			lastPosition = {x: mouseX, y: mouseY};
 		};
 		
 		const deactivateDrawing = (event) => {
@@ -173,18 +285,37 @@
 			canvas.ontouchstart = activateDrawing.bind(event);
 			canvas.ontouchend = deactivateDrawing.bind(event);
 			
+			document.querySelector("#sandType").onchange = function(e){
+
+				drawColor = parseInt(e.target.value);
+			}
+			
 			const clearRequest = document.querySelector("#clear");
 			clearRequest.addEventListener('click', clearRequestCall);
 		};
 		
-		window.onload = init;
+		window.addEventListener ? 
+		window.addEventListener("load",init,false) : 
+		window.attachEvent && window.attachEvent("onload",init);
     </script>
 </head>
 <body>
 	<canvas id="canvas" width="400" height="400" style="border:1px solid #555555; touch-action: none;">
 		Your browser does not support the HTML5 canvas tag.
 	</canvas>
-	<input id="clear" type='button' value='clear'/>
+	<div id="controls">
+		<label>Sand Types
+			<select id="sandType">
+				<option value="4">Salt</option>
+				<option value="6">Salt Water</option>
+				<option value="2" selected>Sand</option>
+				<option value="5">Stone</option>
+				<option value="1">Void (Eraser)</option>
+				<option value="3">Water</option>
+			</select>
+		</label>
+		<input id="clear" type='button' value='clear'/>
+	</div>
 </body>
 </html>
 
