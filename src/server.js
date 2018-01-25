@@ -92,10 +92,18 @@ const updateSand = () => {
 
 
               // Attempt to sink if denser then the particle below
-              else if (isFluid(oldScene[sceneX][sceneY + 1]) && isDenser(oldScene[sceneX][sceneY], oldScene[sceneX][sceneY + 1]) && (oldScene[sceneX][sceneY + 1] === sandArray[sceneX][sceneY + 1]) && (Math.floor(Math.random() * (2)) === 1)) {
-                tileChanger({ x: sceneX, y: (sceneY + 1), type: oldScene[sceneX][sceneY] });
-                tileChanger({ x: sceneX, y: sceneY, type: oldScene[sceneX][sceneY + 1] });
-                moved = true;
+              else if (isFluid(oldScene[sceneX][sceneY + 1])) {
+                if (isDenser(oldScene[sceneX][sceneY], oldScene[sceneX][sceneY + 1])) {
+                  // If the particle below is the same in both scenes
+                  if (oldScene[sceneX][sceneY + 1] === sandArray[sceneX][sceneY + 1]) {
+                    // Randomly abort sinking for viscosity effects
+                    if (Math.floor(Math.random() * (2)) === 1) {
+                      tileChanger({ x: sceneX, y: (sceneY + 1), type: oldScene[sceneX][sceneY] });
+                      tileChanger({ x: sceneX, y: sceneY, type: oldScene[sceneX][sceneY + 1] });
+                      moved = true;
+                    }
+                  }
+                }
               }
             }
 
@@ -112,19 +120,21 @@ const updateSand = () => {
             }
 
             // check if the tile is valid to move to
-            if ((((directionMod === -1) && (sceneX > 0)) || ((directionMod === 1) && (sceneX < sandArrayX - 1))) && (isFluid(oldScene[sceneX][sceneY]) || oldScene[sceneX][sceneY] === sandVoid) && !moved) {
-              // make sure the particle can be swapped
-              if ((oldScene[sceneX][sceneY] !== sandArray[sceneX + directionMod][sceneY]) && isDenser(sandArray[sceneX][sceneY], sandArray[sceneX + directionMod][sceneY]) && isDenser(oldScene[sceneX][sceneY], oldScene[sceneX + directionMod][sceneY]) && (oldScene[sceneX][sceneY] === sandArray[sceneX][sceneY]) && (oldScene[sceneX + directionMod][sceneY] === sandArray[sceneX + directionMod][sceneY])) {
-                // print("\(sandArray[sceneX][sceneY]) , \(sandArray[sceneX + directionMod][sceneY])")
+            if ((((directionMod === -1) && (sceneX > 0)) || ((directionMod === 1) && (sceneX < sandArrayX - 1)))) {
+              if ((isFluid(oldScene[sceneX][sceneY]) || oldScene[sceneX][sceneY] === sandVoid)) {
+                if (!moved) {
+                  // make sure the particle can be swapped
+                  if ((oldScene[sceneX][sceneY] !== sandArray[sceneX + directionMod][sceneY]) && isDenser(sandArray[sceneX][sceneY], sandArray[sceneX + directionMod][sceneY]) && isDenser(oldScene[sceneX][sceneY], oldScene[sceneX + directionMod][sceneY]) && (oldScene[sceneX][sceneY] === sandArray[sceneX][sceneY]) && (oldScene[sceneX + directionMod][sceneY] === sandArray[sceneX + directionMod][sceneY])) {
+                    // print("\(sandArray[sceneX][sceneY]) , \(sandArray[sceneX + directionMod][sceneY])")
 
-                // sandArray[sceneX][sceneY] = oldScene[sceneX + directionMod][sceneY]
-                tileChanger({ x: sceneX, y: sceneY, type: oldScene[sceneX + directionMod][sceneY] });
-                // sandArray[sceneX + directionMod][sceneY] = oldScene[sceneX][sceneY]
-                tileChanger({ x: (sceneX + directionMod), y: sceneY, type: oldScene[sceneX][sceneY] });
+                    // sandArray[sceneX][sceneY] = oldScene[sceneX + directionMod][sceneY]
+                    tileChanger({ x: sceneX, y: sceneY, type: oldScene[sceneX + directionMod][sceneY] });
+                    // sandArray[sceneX + directionMod][sceneY] = oldScene[sceneX][sceneY]
+                    tileChanger({ x: (sceneX + directionMod), y: sceneY, type: oldScene[sceneX][sceneY] });
 
-                // print("\(sandArray[sceneX][sceneY]) , \(sandArray[sceneX + directionMod][sceneY])\n")
-
-                // moved = true;
+                    // moved = true;
+                  }
+                }
               }
             }
           }
