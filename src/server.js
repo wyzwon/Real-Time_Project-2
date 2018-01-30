@@ -86,7 +86,7 @@ const updateSand = () => {
                 tileChanger({ x: scX, y: (scY + 1), type: oldScene[scX][scY] });
                 tileChanger({ x: scX, y: scY, type: sandVoid });
                 moved = true;
-              } else if (isFluid(oldScene[scX][scY + 1])) { // Sink if denser then the particle below
+              } else if (isFluid(oldScene[scX][scY + 1])) { // Sink if denser then the pixel below
                 if (isDenser(oldScene[scX][scY], oldScene[scX][scY + 1])) {
                   // If the particle below is the same in both scenes
                   if (oldScene[scX][scY + 1] === sandArray[scX][scY + 1]) {
