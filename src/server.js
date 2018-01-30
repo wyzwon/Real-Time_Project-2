@@ -8,7 +8,7 @@ const port = process.env.PORT || process.env.NODE_PORT || 3000;
 // __dirname in node is the current directory
 // (in this case the same folder as the server js file)
 const index = fs.readFileSync(`${__dirname}/../client/index.html`);
-//const sandClient = fs.readFileSync(`${__dirname}/../client/scripts/Sand.js`);
+// const sandClient = fs.readFileSync(`${__dirname}/../client/scripts/Sand.js`);
 const favicon = fs.readFileSync(`${__dirname}/../client/favicon.ico`);
 
 const sandArrayX = 150;
@@ -51,7 +51,7 @@ const blankBufferArray = sandArray.map(row => row.slice());
 let oldScene = blankBufferArray.map(row => row.slice());
 
 const tileChanger = (tile) => {
-  // Record the changes that will be passed to the users
+  // Record the changes so they can be passed to the users
   outGoingChangeBuffer[`${tile.x},${tile.y}`] = tile;
 
   // Commit the changes to the main scene array
@@ -71,35 +71,29 @@ const isDenser = (particle1, particle2) => (densityDict[particle1] > densityDict
 
 const updateSand = () => {
   // Loop through all the cells in the scene
-  for (let sceneX = 0; sceneX < sandArray.length; sceneX++) { // x loop
-    for (let sceneY = 0; sceneY < sandArray[0].length; sceneY++) { // y loop
-      if (sandArray[sceneX][sceneY] !== sandVoid) {
+  for (let scX = 0; scX < sandArray.length; scX++) { // sceneX loop
+    for (let scY = 0; scY < sandArray[0].length; scY++) { // sceneY loop
+      if (sandArray[scX][scY] !== sandVoid) {
         // check if the particle is the same in both scenes and therefore possibly unmoved
-        if (sandArray[sceneX][sceneY] === oldScene[sceneX][sceneY]) {
+        if (sandArray[scX][scY] === oldScene[scX][scY]) {
           // check if the particle is fluid
-          if (isFluid(oldScene[sceneX][sceneY])) {
+          if (isFluid(oldScene[scX][scY])) {
             let moved = false;
             // check if the spot bellow it exists
-            if ((sceneY + 1) < sandArrayY) {
+            if ((scY + 1) < sandArrayY) {
               // check if the spot below is empty and if so move into it
-              if (sandArray[sceneX][sceneY + 1] === sandVoid) {
-                // sandArray[sceneX][sceneY + 1] = sandArray[sceneX][sceneY];
-                tileChanger({ x: sceneX, y: (sceneY + 1), type: oldScene[sceneX][sceneY] });
-                // sandArray[sceneX][sceneY] = sandVoid;
-                tileChanger({ x: sceneX, y: sceneY, type: sandVoid });
+              if (sandArray[scX][scY + 1] === sandVoid) {
+                tileChanger({ x: scX, y: (scY + 1), type: oldScene[scX][scY] });
+                tileChanger({ x: scX, y: scY, type: sandVoid });
                 moved = true;
-              }
-
-
-              // Attempt to sink if denser then the particle below
-              else if (isFluid(oldScene[sceneX][sceneY + 1])) {
-                if (isDenser(oldScene[sceneX][sceneY], oldScene[sceneX][sceneY + 1])) {
+              } else if (isFluid(oldScene[scX][scY + 1])) { // Sink if denser then the particle below
+                if (isDenser(oldScene[scX][scY], oldScene[scX][scY + 1])) {
                   // If the particle below is the same in both scenes
-                  if (oldScene[sceneX][sceneY + 1] === sandArray[sceneX][sceneY + 1]) {
+                  if (oldScene[scX][scY + 1] === sandArray[scX][scY + 1]) {
                     // Randomly abort sinking for viscosity effects
                     if (Math.floor(Math.random() * (2)) === 1) {
-                      tileChanger({ x: sceneX, y: (sceneY + 1), type: oldScene[sceneX][sceneY] });
-                      tileChanger({ x: sceneX, y: sceneY, type: oldScene[sceneX][sceneY + 1] });
+                      tileChanger({ x: scX, y: (scY + 1), type: oldScene[scX][scY] });
+                      tileChanger({ x: scX, y: scY, type: oldScene[scX][scY + 1] });
                       moved = true;
                     }
                   }
@@ -108,31 +102,39 @@ const updateSand = () => {
             }
 
 
-            // try to move left or right randomly
+            // Try to move left or right randomly
             const dispersalDirection = (Math.floor(Math.random() * (2)) === 1);
 
-            // this block allows the same code to be used for movement in both directions by switching out the coordinate used
-            let directionMod;
+            // This block allows the same code to be used for movement in both directions
+            // by switching out the coordinate used
+            let dirMod; // properly "directionMod"  but shortened to comply with line length
             if (dispersalDirection) {
-              directionMod = -1;
+              dirMod = -1;
             } else {
-              directionMod = 1;
+              dirMod = 1;
             }
 
             // check if the tile is valid to move to
-            if ((((directionMod === -1) && (sceneX > 0)) || ((directionMod === 1) && (sceneX < sandArrayX - 1)))) {
-              if ((isFluid(oldScene[sceneX][sceneY]) || oldScene[sceneX][sceneY] === sandVoid)) {
+            if ((((dirMod === -1) && (scX > 0)) || ((dirMod === 1) && (scX < sandArrayX - 1)))) {
+              if ((isFluid(oldScene[scX][scY]) || oldScene[scX][scY] === sandVoid)) {
                 if (!moved) {
-                  // make sure the particle can be swapped
-                  if ((oldScene[sceneX][sceneY] !== sandArray[sceneX + directionMod][sceneY]) && isDenser(sandArray[sceneX][sceneY], sandArray[sceneX + directionMod][sceneY]) && isDenser(oldScene[sceneX][sceneY], oldScene[sceneX + directionMod][sceneY]) && (oldScene[sceneX][sceneY] === sandArray[sceneX][sceneY]) && (oldScene[sceneX + directionMod][sceneY] === sandArray[sceneX + directionMod][sceneY])) {
-                    // print("\(sandArray[sceneX][sceneY]) , \(sandArray[sceneX + directionMod][sceneY])")
-
-                    // sandArray[sceneX][sceneY] = oldScene[sceneX + directionMod][sceneY]
-                    tileChanger({ x: sceneX, y: sceneY, type: oldScene[sceneX + directionMod][sceneY] });
-                    // sandArray[sceneX + directionMod][sceneY] = oldScene[sceneX][sceneY]
-                    tileChanger({ x: (sceneX + directionMod), y: sceneY, type: oldScene[sceneX][sceneY] });
-
-                    // moved = true;
+                  // Make sure the particle can be swapped
+                  // If the two particles are not the same type
+                  if ((oldScene[scX][scY] !== sandArray[scX + dirMod][scY])) {
+                    // If the particle is denser then the one it's moving to in the new scene
+                    if (isDenser(sandArray[scX][scY], sandArray[scX + dirMod][scY])) {
+                      // If the particle is denser then the one it's moving to in the old scene
+                      if (isDenser(oldScene[scX][scY], oldScene[scX + dirMod][scY])) {
+                        // If the particle is the same in both scenes
+                        if (oldScene[scX][scY] === sandArray[scX][scY]) {
+                          // If the position the particle is moving to is the same in both scenes
+                          if (oldScene[scX + dirMod][scY] === sandArray[scX + dirMod][scY]) {
+                            tileChanger({ x: scX, y: scY, type: oldScene[scX + dirMod][scY] });
+                            tileChanger({ x: (scX + dirMod), y: scY, type: oldScene[scX][scY] });
+                          }
+                        }
+                      }
+                    }
                   }
                 }
               }
@@ -152,11 +154,11 @@ const onRequest = (request, response) => {
       response.write(index);
       response.end();
       break;
-    /*case '/scripts/Sand.js':
+    /* case '/scripts/Sand.js':
       response.writeHead(200, { 'Content-Type': 'text/javascript' });
       response.write(sandClient);
       response.end();
-      break;*/
+      break; */
     case '/favicon.ico':
       response.writeHead(200, { 'Content-Type': 'image/x-icon' });
       response.write(favicon);
@@ -269,18 +271,12 @@ setInterval(() => {
   updateSand();
 
   const bufferListKeys = Object.keys(incomingChangeBuffer);
+
   // place each change in the local copy
   for (let i = 0; i < bufferListKeys.length; i++) {
     // Add the tile to the array
     tileChanger(incomingChangeBuffer[bufferListKeys[i]]);
   }
-
-  // Send a few tile changes through as a heartbeat
-  // const tilesArray = {};
-  // tilesArray[0] = { x: 2, y: 67, type: Math.floor(Math.random() * (5)) };
-  // tilesArray[1] = { x: 30, y: 22, type: Math.floor(Math.random() * (5)) };
-  // outGoingChangeBuffer['2,67'] = { x: 2, y: 67, type: Math.floor(Math.random() * (4)) + 1 };
-  // outGoingChangeBuffer['30,22'] = { x: 30, y: 22, type: Math.floor(Math.random() * (4)) + 1 };
 
   // Send the changes that happened this frame to the client windows
   io.sockets.in('room1').emit('arrayUpdates', outGoingChangeBuffer);

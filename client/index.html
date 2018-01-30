@@ -228,19 +228,25 @@
 					ctx.fillRect(lx * pixelSize, ly * pixelSize, pixelSize, pixelSize);
 				}
 			}
-			//console.log(`${r},${g},${b}`);
-			//r = 0;
-			//g = 0;
-			//b = 0;
 		};
+		
+		// Returns the X position of the mouse at time of request
+		const getMouseX = () => {
+			return Math.floor(((event.clientX - boundingClient.left) / canvas.width) * clientSandArray.length);
+		}
+		
+		// Returns the Y position of the mouse at time of request
+		const getMouseY = () => {
+			return Math.floor(((event.clientY - boundingClient.top) / canvas.height) * clientSandArray[0].length);
+		}
 		
 		const setCalls = (event) => {
 			if(drawing)
 			{
 
 				// Calculate the mouse position
-				let mouseX = Math.floor(((event.clientX - boundingClient.left) / canvas.width) * clientSandArray.length);
-                let mouseY = Math.floor(((event.clientY - boundingClient.top) / canvas.height) * clientSandArray[0].length);
+				let mouseX = getMouseX();
+                let mouseY = getMouseY();
 				
 				// draw a line between the mouse points
 				lineCalculator(lastPosition.x, lastPosition.y, mouseX, mouseY);
@@ -254,8 +260,11 @@
 			drawing = true;
 			
 			// Calculate the mouse position
-			let mouseX = Math.floor(((event.clientX - boundingClient.left) / canvas.width) * clientSandArray.length);
-            let mouseY = Math.floor(((event.clientY - boundingClient.top) / canvas.height) * clientSandArray[0].length);
+			let mouseX = getMouseX();
+            let mouseY = getMouseY();
+			
+			// Place the current pixel in the buffer
+			tilesDict[`${mouseX},${mouseY}`] = {x: mouseX, y: mouseY, type: drawColor};
 			
 			// Set this point as the starting point for the line.
 			lastPosition = {x: mouseX, y: mouseY};
@@ -263,7 +272,28 @@
 		
 		const deactivateDrawing = (event) => {
 			drawing = false;
-			//console.log("draw deactivated");
+		};
+		
+		const edgeInDrawing = (event) => {
+			if(drawing){
+				// Calculate the mouse position
+				let mouseX = getMouseX();
+				let mouseY = getMouseY();
+				
+				// Set this point as the starting point for the line.
+				lastPosition = {x: mouseX, y: mouseY};
+			}
+		};
+		
+		const edgeOutDrawing = (event) => {
+			if(drawing){
+				// Calculate the mouse position
+				let mouseX = getMouseX();
+				let mouseY = getMouseY();
+			
+				// draw a line between the mouse points
+				lineCalculator(lastPosition.x, lastPosition.y, mouseX, mouseY);
+			}
 		};
 		
 		const clearRequestCall = (e) => {
@@ -273,13 +303,14 @@
 		
 		const init = () => {
 			connectSocket();
-			//canvas.onmousedown = setCalls.bind(event);
 			canvas.onmousemove = setCalls.bind(event);
 			canvas.ontouchmove = setCalls.bind(event);
 			canvas.onmousedown = activateDrawing.bind(event);
-			canvas.onmouseup = deactivateDrawing.bind(event);
+			window.onmouseup = deactivateDrawing.bind(event);
 			canvas.ontouchstart = activateDrawing.bind(event);
 			canvas.ontouchend = deactivateDrawing.bind(event);
+			canvas.onmouseout = edgeOutDrawing.bind(event);
+			canvas.onmouseover = edgeInDrawing.bind(event);
 			
 			document.querySelector("#sandType").onchange = function(e){
 
