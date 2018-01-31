@@ -221,8 +221,8 @@ const onArrayUpdateToServer = (sock) => {
 
       // Assign the tile to the corresponding spot
       // If coordinates exists.
-      if (tile.x && tile.y) {
-        // If coordinates in bounds
+      if ((tile.x !== null) && (tile.y !== null)) {
+        // If coordinates in bounds (and not undefined)
         if ((tile.x < sandArrayX) && (tile.y < sandArrayY) && (tile.x >= 0) && (tile.y >= 0)) {
           // If tile is valid
           if (tile.type) {
