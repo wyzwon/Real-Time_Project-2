@@ -86,7 +86,9 @@ const updateSand = () => {
                 tileChanger({ x: scX, y: (scY + 1), type: oldScene[scX][scY] });
                 tileChanger({ x: scX, y: scY, type: sandVoid });
                 moved = true;
-              } else if (isFluid(oldScene[scX][scY + 1])) { // Sink if denser then the pixel below
+              }
+              // Sink if denser then the pixel below
+              else if (isFluid(oldScene[scX][scY + 1])) {
                 if (isDenser(oldScene[scX][scY], oldScene[scX][scY + 1])) {
                   // If the particle below is the same in both scenes
                   if (oldScene[scX][scY + 1] === sandArray[scX][scY + 1]) {
@@ -213,16 +215,20 @@ const onArrayUpdateToServer = (sock) => {
   socket.on('arrayUpdateToServer', (data) => {
     const changeListKeys = Object.keys(data);
 
-    // place each change in the local copy
+    // Place each change in the local copy
     for (let i = 0; i < changeListKeys.length; i++) {
       const tile = data[changeListKeys[i]];
 
-      // Assign the tile to the corresponding spot if it exists.
-      if ((tile.x < sandArrayX) && (tile.y < sandArrayY) && (tile.x >= 0) && (tile.y >= 0)) {
-        // make sure the tile is valid
-        if (tile.type) {
-          // add the changes to the changeBuffer
-          incomingChangeBuffer[`${tile.x},${tile.y}`] = tile;
+      // Assign the tile to the corresponding spot
+      // If coordinates exists.
+      if (tile.x && tile.y) {
+        // If coordinates in bounds
+        if ((tile.x < sandArrayX) && (tile.y < sandArrayY) && (tile.x >= 0) && (tile.y >= 0)) {
+          // If tile is valid
+          if (tile.type) {
+            // Add the changes to the changeBuffer
+            incomingChangeBuffer[`${tile.x},${tile.y}`] = tile;
+          }
         }
       }
     }
@@ -244,7 +250,7 @@ const onDisconnect = (sock) => {
   const socket = sock;
 
   socket.on('disconnect', () => {
-    console.log(`${socket.id} Left the chat room`);
+    console.log(`${socket.id} Left room1`);
     socket.leave('room1');
   });
 };

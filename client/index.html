@@ -22,7 +22,6 @@
 		let tilesDict = {};
 		
 		let drawColor = parseInt(document.querySelector("#sandType").value);
-		console.log("Color: " + drawColor);
 		
 		let lastPosition = {};
 		const boundingClient = canvas.getBoundingClientRect();
@@ -39,7 +38,6 @@
 			});
 
 			socket.on('msg', (data) => {
-				console.log(data);
 				chat.value = `${data.value}`;
 			});
 			
@@ -100,9 +98,11 @@
 		};
 		
 		setInterval(() => {
-			socket.emit('arrayUpdateToServer', tilesDict);
-			
-			tilesDict = {};
+			if(Object.keys(tilesDict).length > 0){
+				socket.emit('arrayUpdateToServer', tilesDict);
+
+				tilesDict = {};
+			}
 		}, 70);
 		
 		// calculate a line between two mouse points and add them to the buffer with the current draw color
@@ -125,7 +125,9 @@
 
 						for(let x = x0; x <= x1; x++){
 							// Add the tile to the list to be sent to the server,
-							tilesDict[`${x},${y}`] = {x: x, y: y, type: drawColor};
+							if((x >= 0) && (y >= 0)){
+								tilesDict[`${x},${y}`] = {x: x, y: y, type: drawColor};
+							}
 							
 							error = (error + deltaError);
 							while(error >= 0.5){
@@ -139,7 +141,9 @@
 						
 						for(let x = x0; x >= x1; x--){
 							// Add the tile to the list to be sent to the server,
-							tilesDict[`${x},${y}`] = {x: x, y: y, type: drawColor};
+							if((x >= 0) && (y >= 0)){
+								tilesDict[`${x},${y}`] = {x: x, y: y, type: drawColor};
+							}
 							
 							error = (error + deltaError);
 							while(error >= 0.5){
@@ -161,7 +165,9 @@
 
 						for(let y = y0; y <= y1; y++){
 							// Add the tile to the list to be sent to the server,
-							tilesDict[`${x},${y}`] = {x: x, y: y, type: drawColor};
+							if((x >= 0) && (y >= 0)){
+								tilesDict[`${x},${y}`] = {x: x, y: y, type: drawColor};
+							}
 							
 							error = (error + deltaError);
 							while(error >= 0.5){
@@ -175,7 +181,9 @@
 
 						for(let y = y0; y >= y1; y--){
 							// Add the tile to the list to be sent to the server,
-							tilesDict[`${x},${y}`] = {x: x, y: y, type: drawColor};
+							if((x >= 0) && (y >= 0)){
+								tilesDict[`${x},${y}`] = {x: x, y: y, type: drawColor};
+							}
 							
 							error = (error + deltaError);
 							while(error >= 0.5){
@@ -230,69 +238,135 @@
 			}
 		};
 		
-		// Returns the X position of the mouse at time of request
-		const getMouseX = () => {
-			return Math.floor(((event.clientX - boundingClient.left) / canvas.width) * clientSandArray.length);
+		// Returns the X position of the mouse/touch at time of request
+		const getPositionX = () => {
+			let coordinateX = 0;
+
+			switch(event.type){
+				case "mousemove":
+				case "mousedown":
+				case "mouseout":
+				case "mouseover":
+					coordinateX = event.clientX;
+				break;
+				case "touchmove":
+				case "touchstart":
+					coordinateX = event.touches[0].pageX;
+				break;
+				default:
+					coordinateY = 200;
+			}
+			
+			// Calculate the corresponding tile
+			return Math.floor(((coordinateX - boundingClient.left) / canvas.width) * clientSandArray.length);
 		}
 		
-		// Returns the Y position of the mouse at time of request
-		const getMouseY = () => {
-			return Math.floor(((event.clientY - boundingClient.top) / canvas.height) * clientSandArray[0].length);
+		// Returns the Y position of the mouse/touch at time of request
+		const getPositionY = () => {
+			let coordinateY;
+
+			switch(event.type){
+				case "mousemove":
+				case "mousedown":
+				case "mouseout":
+				case "mouseover":
+					coordinateY = event.clientY;
+				break;
+				case "touchmove":
+				case "touchstart":
+					coordinateY = event.touches[0].pageY;
+				break;
+				default:
+					coordinateY = 200;
+			}
+			
+			// Calculate the corresponding tile
+			return Math.floor(((coordinateY - boundingClient.top) / canvas.height) * clientSandArray[0].length);
 		}
 		
-		const setCalls = (event) => {
-			if(drawing)
-			{
+		const moveDrawing = (event) => {
+			if(drawing){
+				event.preventDefault();
 
 				// Calculate the mouse position
-				let mouseX = getMouseX();
-                let mouseY = getMouseY();
-				
+				let positionX = getPositionX();
+                let positionY = getPositionY();
+
 				// draw a line between the mouse points
-				lineCalculator(lastPosition.x, lastPosition.y, mouseX, mouseY);
-				
+				lineCalculator(lastPosition.x, lastPosition.y, positionX, positionY);
+
 				// Set this point as the starting point for the next line segment
-				lastPosition = {x: mouseX, y: mouseY};
+				lastPosition = {x: positionX, y: positionY};
 			}
 		};
 		
 		const activateDrawing = (event) => {
+			event.preventDefault();
 			drawing = true;
 			
 			// Calculate the mouse position
-			let mouseX = getMouseX();
-            let mouseY = getMouseY();
+			let positionX = getPositionX();
+            let positionY = getPositionY();
 			
 			// Place the current pixel in the buffer
-			tilesDict[`${mouseX},${mouseY}`] = {x: mouseX, y: mouseY, type: drawColor};
+			tilesDict[`${positionX},${positionY}`] = {x: positionX, y: positionY, type: drawColor};
 			
 			// Set this point as the starting point for the line.
-			lastPosition = {x: mouseX, y: mouseY};
+			lastPosition = {x: positionX, y: positionY};
+		};
+		
+		const activateTouchDrawing = (event) => {
+			event.preventDefault();
+			
+			let positionX = getPositionX();
+			let positionY = getPositionY();
+			
+			// Place the current pixel in the buffer
+			tilesDict[`${positionX},${positionY}`] = {x: positionX, y: positionY, type: drawColor};
+			
+			// Set this point as the starting point for the line.
+			lastPosition = {x: positionX, y: positionY};
+		};
+		
+		const moveTouchDrawing = (event) => {
+			event.preventDefault();
+			
+			let positionX = getPositionX();
+			let positionY = getPositionY();
+			
+			// draw a line between the mouse points
+			lineCalculator(lastPosition.x, lastPosition.y, positionX, positionY);
+				
+			// Set this point as the starting point for the line.
+			lastPosition = {x: positionX, y: positionY};
 		};
 		
 		const deactivateDrawing = (event) => {
+			event.preventDefault();
 			drawing = false;
 		};
 		
 		const edgeInDrawing = (event) => {
 			if(drawing){
+				event.preventDefault();
 				// Calculate the mouse position
-				let mouseX = getMouseX();
-				let mouseY = getMouseY();
+				let positionX = getPositionX();
+				let positionY = getPositionY();
 				
 				// Set this point as the starting point for the line.
-				lastPosition = {x: mouseX, y: mouseY};
+				lastPosition = {x: positionX, y: positionY};
 			}
 		};
 		
 		const edgeOutDrawing = (event) => {
 			if(drawing){
+				event.preventDefault();
 				// Calculate the mouse position
-				let mouseX = getMouseX();
-				let mouseY = getMouseY();
+				let positionX = getPositionX();
+				let positionY = getPositionY();
 			
 				// draw a line between the mouse points
-				lineCalculator(lastPosition.x, lastPosition.y, mouseX, mouseY);
+				lineCalculator(lastPosition.x, lastPosition.y, positionX, positionY);
 			}
 		};
 		
@@ -303,12 +377,12 @@
 		
 		const init = () => {
 			connectSocket();
-			canvas.onmousemove = setCalls.bind(event);
-			canvas.ontouchmove = setCalls.bind(event);
+			canvas.onmousemove = moveDrawing.bind(event);
+			canvas.ontouchmove = moveTouchDrawing.bind(event);
 			canvas.onmousedown = activateDrawing.bind(event);
 			window.onmouseup = deactivateDrawing.bind(event);
-			canvas.ontouchstart = activateDrawing.bind(event);
-			canvas.ontouchend = deactivateDrawing.bind(event);
+			canvas.ontouchstart = activateTouchDrawing.bind(event);
+			//canvas.ontouchend = deactivateDrawing.bind(event);
 			canvas.onmouseout = edgeOutDrawing.bind(event);
 			canvas.onmouseover = edgeInDrawing.bind(event);
 			
