@@ -65,14 +65,21 @@ const isFluid = (tile) => {
 
   return false;
 };
+const isFluidOrVoid = (tile) => {
+  if (tile !== 5) {
+    return true;
+  }
+
+  return false;
+};
 
 // compare densities
 const isDenser = (particle1, particle2) => (densityDict[particle1] > densityDict[particle2]);
 
 const updateSand = () => {
   // Loop through all the cells in the scene
-  for (let scX = 0; scX < sandArray.length; scX++) { // sceneX loop
-    for (let scY = 0; scY < sandArray[0].length; scY++) { // sceneY loop
+  for (let scY = 0; scY < sandArray[0].length; scY++) { // sceneY loop
+    for (let scX = 0; scX < sandArray.length; scX++) { // sceneX loop
       if (sandArray[scX][scY] !== sandVoid) {
         // check if the particle is the same in both scenes and therefore possibly unmoved
         if (sandArray[scX][scY] === oldScene[scX][scY]) {
@@ -83,8 +90,11 @@ const updateSand = () => {
             if ((scY + 1) < sandArrayY) {
               // check if the spot below is empty and if so move into it
               if (sandArray[scX][scY + 1] === sandVoid) {
-                tileChanger({ x: scX, y: (scY + 1), type: oldScene[scX][scY] });
-                tileChanger({ x: scX, y: scY, type: sandVoid });
+                // disperse in air by very occasionally not falling
+                if (Math.floor((Math.random() * 32)) !== 1) {
+                  tileChanger({ x: scX, y: (scY + 1), type: oldScene[scX][scY] });
+                  tileChanger({ x: scX, y: scY, type: sandVoid });
+                }
                 moved = true;
               }
               // Sink if denser then the pixel below
@@ -103,23 +113,24 @@ const updateSand = () => {
               }
             }
 
+            if (!moved) {
+              // Try to move left or right randomly
+              const dispersalDirection = (Math.floor(Math.random() * (2)) === 1);
 
-            // Try to move left or right randomly
-            const dispersalDirection = (Math.floor(Math.random() * (2)) === 1);
+              // This block allows the same code to be used for movement in both directions
+              // by switching out the coordinate used
+              let dirMod; // properly "directionMod"  but shortened to comply with line length
+              if (dispersalDirection) {
+                dirMod = -1;
+              }
+              else {
+                dirMod = 1;
+              }
 
-            // This block allows the same code to be used for movement in both directions
-            // by switching out the coordinate used
-            let dirMod; // properly "directionMod"  but shortened to comply with line length
-            if (dispersalDirection) {
-              dirMod = -1;
-            } else {
-              dirMod = 1;
-            }
-
-            // check if the tile is valid to move to
-            if ((((dirMod === -1) && (scX > 0)) || ((dirMod === 1) && (scX < sandArrayX - 1)))) {
-              if ((isFluid(oldScene[scX][scY]) || oldScene[scX][scY] === sandVoid)) {
-                if (!moved) {
+              // check if the tile is valid (in array boundary) to move to
+              if ((((dirMod === -1) && (scX > 0)) || ((dirMod === 1) && (scX < sandArrayX - 1)))) {
+                // If the tile in question is a fluid or void
+                if (isFluidOrVoid(oldScene[scX + dirMod][scY])) {
                   // Make sure the particle can be swapped
                   // If the two particles are not the same type
                   if ((oldScene[scX][scY] !== sandArray[scX + dirMod][scY])) {
