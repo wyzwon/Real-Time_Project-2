@@ -59,7 +59,7 @@ const tileChanger = (tile) => {
 };
 
 const isFluid = (tile) => {
-  if (tile > 0 && tile !== 5) {
+  if (tile !== 1 && tile !== 5) {
     return true;
   }
 
@@ -67,6 +67,13 @@ const isFluid = (tile) => {
 };
 const isFluidOrVoid = (tile) => {
   if (tile !== 5) {
+    return true;
+  }
+
+  return false;
+};
+const isLiquid = (tile) => {
+  if (tile === 1 || tile === 3 || tile === 6) {
     return true;
   }
 
@@ -98,7 +105,7 @@ const updateSand = () => {
                 moved = true;
               }
               // Sink if denser then the pixel below
-              else if (isFluid(oldScene[scX][scY + 1])) {
+              else if (isLiquid(oldScene[scX][scY + 1])) {
                 if (isDenser(oldScene[scX][scY], oldScene[scX][scY + 1])) {
                   // If the particle below is the same in both scenes
                   if (oldScene[scX][scY + 1] === sandArray[scX][scY + 1]) {
@@ -130,7 +137,7 @@ const updateSand = () => {
               // check if the tile is valid (in array boundary) to move to
               if ((((dirMod === -1) && (scX > 0)) || ((dirMod === 1) && (scX < sandArrayX - 1)))) {
                 // If the tile in question is a fluid or void
-                if (isFluidOrVoid(oldScene[scX + dirMod][scY])) {
+                if (isLiquid(oldScene[scX + dirMod][scY])) {
                   // Make sure the particle can be swapped
                   // If the two particles are not the same type
                   if ((oldScene[scX][scY] !== sandArray[scX + dirMod][scY])) {
