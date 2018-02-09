@@ -65,15 +65,19 @@ const isFluid = (tile) => {
 
   return false;
 };
-const isFluidOrVoid = (tile) => {
-  if (tile !== 5) {
+const isLiquid = (tile) => {
+  if (tile === 1 || tile === 3 || tile === 6) {
     return true;
   }
 
   return false;
 };
-const isLiquid = (tile) => {
-  if (tile === 1 || tile === 3 || tile === 6) {
+
+const testSaltWaterMerge = (scX, scY) => {
+  if ((sandArray[scX][scY] === sandSalt) && (sandArray[scX][scY + 1] === sandWater)) {
+    return true;
+  }
+  else if ((sandArray[scX][scY] === sandWater) && (sandArray[scX][scY + 1] === sandSalt)) {
     return true;
   }
 
@@ -99,9 +103,15 @@ const updateSand = () => {
               if (sandArray[scX][scY + 1] === sandVoid) {
                 // disperse in air by very occasionally not falling
                 if (Math.floor((Math.random() * 32)) !== 1) {
-                  tileChanger({ x: scX, y: (scY + 1), type: oldScene[scX][scY] });
                   tileChanger({ x: scX, y: scY, type: sandVoid });
+                  tileChanger({ x: scX, y: (scY + 1), type: oldScene[scX][scY] });
+                  moved = true;
                 }
+              }
+              // Attempt to Merge
+              else if (testSaltWaterMerge(scX, scY)) {
+                tileChanger({ x: scX, y: scY, type: sandVoid });
+                tileChanger({ x: scX, y: (scY + 1), type: sandSaltWater });
                 moved = true;
               }
               // Sink if denser then the pixel below
