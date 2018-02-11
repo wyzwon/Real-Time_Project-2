@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 	<meta charset="utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge"/>
 	
 	<script src="/socket.io/socket.io.js"></script>
     <script src="https://npmcdn.com/babel-core@5.8.38/browser.min.js"></script>
@@ -28,6 +29,13 @@
 		let lastPosition = {};
 		const boundingClient = canvas.getBoundingClientRect();
 		
+		// Math.sign is unsupported in IE so a custom version must be inserted
+		// credit for sign code:
+		// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/fill
+		if(!Math.sign){
+			Math.sign = function(x){return typeof x === 'number' ? x ? x < 0 ? -1 : 1 : x === x ? 0 : NaN : NaN;}
+		}
+		
 		const connectSocket = () => {
 			socket = io.connect();
 			socket.on('connect', () => {
@@ -52,10 +60,23 @@
 					pixelSize = suggestedPixelSize;
 				}
 				
+				// Assign blankBufferArray the dimensions of clientSandArray
 				blankBufferArray = clientSandArray.map(row => row.slice());
-				for (let i = 0; i < blankBufferArray.length; i++) {
-					blankBufferArray[i] = new Array(blankBufferArray[0].length);
-					blankBufferArray[i].fill(1);
+				// If not IE, use Array.fill
+				if([].fill){
+					for (let i = 0; i < blankBufferArray.length; i++) {
+						blankBufferArray[i] = new Array(blankBufferArray[0].length);
+						blankBufferArray[i].fill(1);
+					}
+				}
+				// If IE, fill cells iteratively
+				else{
+					for (let i = 0; i < blankBufferArray.length; i++) {
+						blankBufferArray[i] = new Array(blankBufferArray[0].length);
+						for (let j = 0; j < blankBufferArray[i].length; j++) {
+							blankBufferArray[i][j] = 1;
+						}
+					}
 				}
 				
 				// Set the canvas size to match sandArray
