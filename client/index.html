@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+	<meta charset="utf-8" />
+	
 	<script src="/socket.io/socket.io.js"></script>
     <script src="https://npmcdn.com/babel-core@5.8.38/browser.min.js"></script>
     <script type="text/babel">
@@ -239,7 +241,7 @@
 		};
 		
 		// Returns the X position of the mouse/touch at time of request
-		const getPositionX = () => {
+		const getPositionX = (event) => {
 			let coordinateX = 0;
 
 			switch(event.type){
@@ -254,7 +256,7 @@
 					coordinateX = event.touches[0].pageX;
 				break;
 				default:
-					coordinateY = 200;
+					coordinateX = 200;
 			}
 			
 			// Calculate the corresponding tile
@@ -262,7 +264,7 @@
 		}
 		
 		// Returns the Y position of the mouse/touch at time of request
-		const getPositionY = () => {
+		const getPositionY = (event) => {
 			let coordinateY;
 
 			switch(event.type){
@@ -289,8 +291,8 @@
 				event.preventDefault();
 
 				// Calculate the mouse position
-				let positionX = getPositionX();
-                let positionY = getPositionY();
+				let positionX = getPositionX(event);
+                let positionY = getPositionY(event);
 
 				// draw a line between the mouse points
 				lineCalculator(lastPosition.x, lastPosition.y, positionX, positionY);
@@ -305,8 +307,8 @@
 			drawing = true;
 			
 			// Calculate the mouse position
-			let positionX = getPositionX();
-            let positionY = getPositionY();
+			let positionX = getPositionX(event);
+            let positionY = getPositionY(event);
 			
 			// Place the current pixel in the buffer
 			tilesDict[`${positionX},${positionY}`] = {x: positionX, y: positionY, type: drawColor};
@@ -318,8 +320,8 @@
 		const activateTouchDrawing = (event) => {
 			event.preventDefault();
 			
-			let positionX = getPositionX();
-			let positionY = getPositionY();
+			let positionX = getPositionX(event);
+			let positionY = getPositionY(event);
 			
 			// Place the current pixel in the buffer
 			tilesDict[`${positionX},${positionY}`] = {x: positionX, y: positionY, type: drawColor};
@@ -331,8 +333,8 @@
 		const moveTouchDrawing = (event) => {
 			event.preventDefault();
 			
-			let positionX = getPositionX();
-			let positionY = getPositionY();
+			let positionX = getPositionX(event);
+			let positionY = getPositionY(event);
 			
 			// draw a line between the mouse points
 			lineCalculator(lastPosition.x, lastPosition.y, positionX, positionY);
@@ -350,8 +352,8 @@
 			if(drawing){
 				event.preventDefault();
 				// Calculate the mouse position
-				let positionX = getPositionX();
-				let positionY = getPositionY();
+				let positionX = getPositionX(event);
+				let positionY = getPositionY(event);
 				
 				// Set this point as the starting point for the line.
 				lastPosition = {x: positionX, y: positionY};
@@ -362,20 +364,26 @@
 			if(drawing){
 				event.preventDefault();
 				// Calculate the mouse position
-				let positionX = getPositionX();
-				let positionY = getPositionY();
+				let positionX = getPositionX(event);
+				let positionY = getPositionY(event);
 			
 				// draw a line between the mouse points
 				lineCalculator(lastPosition.x, lastPosition.y, positionX, positionY);
 			}
 		};
 		
-		const clearRequestCall = (e) => {
+		const clearRequestCall = (event) => {
 			// Send the request to clear the scene
 			socket.emit('clearRequest', {});
 		};
 		
 		const init = () => {
+			
+			// define event for FireFox
+			if (!event) {
+				var event = window.Event;
+			};
+			
 			connectSocket();
 			canvas.onmousemove = moveDrawing.bind(event);
 			canvas.ontouchmove = moveTouchDrawing.bind(event);
