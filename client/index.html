@@ -20,9 +20,10 @@
 		let suggestedPixelSize;
 
 		let clientSandArray = [];
-		let blankBufferArray = [];
+		let blankSceneArray = [];
 
-		let tilesDict = {};
+		let outGoingTilesDict = {};
+		let incomingTilesDict = {};
 		
 		let drawColor = parseInt(document.querySelector("#sandType").value);
 		
@@ -60,21 +61,21 @@
 					pixelSize = suggestedPixelSize;
 				}
 				
-				// Assign blankBufferArray the dimensions of clientSandArray
-				blankBufferArray = clientSandArray.map(row => row.slice());
+				// Assign blankSceneArray the dimensions of clientSandArray
+				blankSceneArray = clientSandArray.map(row => row.slice());
 				// If not IE, use Array.fill
 				if([].fill){
-					for (let i = 0; i < blankBufferArray.length; i++) {
-						blankBufferArray[i] = new Array(blankBufferArray[0].length);
-						blankBufferArray[i].fill(1);
+					for (let i = 0; i < blankSceneArray.length; i++) {
+						blankSceneArray[i] = new Array(blankSceneArray[0].length);
+						blankSceneArray[i].fill(1);
 					}
 				}
 				// If IE, fill cells iteratively
 				else{
-					for (let i = 0; i < blankBufferArray.length; i++) {
-						blankBufferArray[i] = new Array(blankBufferArray[0].length);
-						for (let j = 0; j < blankBufferArray[i].length; j++) {
-							blankBufferArray[i][j] = 1;
+					for (let i = 0; i < blankSceneArray.length; i++) {
+						blankSceneArray[i] = new Array(blankSceneArray[0].length);
+						for (let j = 0; j < blankSceneArray[i].length; j++) {
+							blankSceneArray[i][j] = 1;
 						}
 					}
 				}
@@ -83,49 +84,42 @@
 				canvas.width = (clientSandArray.length * pixelSize);
 				canvas.height = (clientSandArray[0].length * pixelSize);
 				
-				draw();
+				fullDraw();
 			});
 
 			socket.on('fullArray', (data) => {
-				// Import the sandArray in full (specifically for first entering the room)
+				// Import the sandArray in full
 				clientSandArray = data.value;
 				
-				// Set the canvas size to match sandArray
-				canvas.width = (clientSandArray.length * pixelSize);
-				canvas.height = (clientSandArray[0].length * pixelSize);
-				
-				draw();
+				fullDraw();
 			});
 			
 			// Clear the local scene when server clears the main scene
 			socket.on('clearScene', (data) => {
-				clientSandArray = blankBufferArray.map(row => row.slice());
+				clientSandArray = blankSceneArray.map(row => row.slice());
+				
+				fullDraw();
 			});
 			
 			// handle sandArray updates
 			socket.on('arrayUpdates', (data) => {
-
-				let changeListKeys = Object.keys(data);
-
-				// place each change in the local copy
-				for (let i = 0; i < changeListKeys.length; i++){
-
-					const tile = data[changeListKeys[i]];
-
-					// Assign the tile to the spot given by the server.
-					clientSandArray[tile.x][tile.y] = tile.type;
-				}
-
-				draw(); // draw the updated scene
+			
+				// Add tiles to the incoming buffer
+				Object.assign(incomingTilesDict, data);
 			});
 		};
 		
-		setInterval(() => {
-			if(Object.keys(tilesDict).length > 0){
-				socket.emit('arrayUpdateToServer', tilesDict);
+		// Push all local change requests to the server
+		const sendTilesToServer = () => {
+			if(Object.keys(outGoingTilesDict).length > 0){
+				socket.emit('arrayUpdateToServer', outGoingTilesDict);
 
-				tilesDict = {};
+				outGoingTilesDict = {};
 			}
+		}
+		
+		setInterval(() => {
+			sendTilesToServer();
 		}, 70);
 		
 		// calculate a line between two mouse points and add them to the buffer with the current draw color
@@ -149,7 +143,7 @@
 						for(let x = x0; x <= x1; x++){
 							// Add the tile to the list to be sent to the server,
 							if((x >= 0) && (y >= 0)){
-								tilesDict[`${x},${y}`] = {x: x, y: y, type: drawColor};
+								outGoingTilesDict[`${x},${y}`] = {x: x, y: y, type: drawColor};
 							}
 							
 							error = (error + deltaError);
@@ -165,7 +159,7 @@
 						for(let x = x0; x >= x1; x--){
 							// Add the tile to the list to be sent to the server,
 							if((x >= 0) && (y >= 0)){
-								tilesDict[`${x},${y}`] = {x: x, y: y, type: drawColor};
+								outGoingTilesDict[`${x},${y}`] = {x: x, y: y, type: drawColor};
 							}
 							
 							error = (error + deltaError);
@@ -189,7 +183,7 @@
 						for(let y = y0; y <= y1; y++){
 							// Add the tile to the list to be sent to the server,
 							if((x >= 0) && (y >= 0)){
-								tilesDict[`${x},${y}`] = {x: x, y: y, type: drawColor};
+								outGoingTilesDict[`${x},${y}`] = {x: x, y: y, type: drawColor};
 							}
 							
 							error = (error + deltaError);
@@ -205,7 +199,7 @@
 						for(let y = y0; y >= y1; y--){
 							// Add the tile to the list to be sent to the server,
 							if((x >= 0) && (y >= 0)){
-								tilesDict[`${x},${y}`] = {x: x, y: y, type: drawColor};
+								outGoingTilesDict[`${x},${y}`] = {x: x, y: y, type: drawColor};
 							}
 							
 							error = (error + deltaError);
@@ -219,14 +213,9 @@
 			}
 		};
 		
-		const draw = () => {
-			ctx.clearRect(0, 0, canvas.width, canvas.height);
-			
-			// fill canvas with the current array values
-			for (let lx = 0; lx < clientSandArray.length; lx++){
-				for (let ly = 0; ly < clientSandArray[0].length; ly++){
-					
-					switch(clientSandArray[lx][ly]){
+		// Identifies the tile and changes the draw color to its setting
+		const drawColorSwitcher = (tile) => {
+			switch(tile){
 						case 1:
 							ctx.fillStyle = "#000000";
 						break;
@@ -255,10 +244,43 @@
 							// show errors tiles in red
 							ctx.fillStyle = "#ff0000";
 					}
+		}
+		
+		const fullDraw = () => {
+			// fill canvas with the current array values
+			for (let lx = 0; lx < clientSandArray.length; lx++){
+				for (let ly = 0; ly < clientSandArray[0].length; ly++){
+					
+					drawColorSwitcher(clientSandArray[lx][ly]);
 					
 					ctx.fillRect(lx * pixelSize, ly * pixelSize, pixelSize, pixelSize);
 				}
 			}
+		};
+		
+		// Redraws only the tiles that need updating
+		const partialDraw = () => {
+			
+			if(Object.keys(incomingTilesDict).length > 0){
+				let changeListKeys = Object.keys(incomingTilesDict);
+	
+				// place each change in the local copy
+				for (let i = 0; i < changeListKeys.length; i++){
+	
+					const tile = incomingTilesDict[changeListKeys[i]];
+	
+					// Assign the tile to the spot given by the server.
+					clientSandArray[tile.x][tile.y] = tile.type;
+					
+					drawColorSwitcher(tile.type);
+					
+					ctx.fillRect(tile.x * pixelSize, tile.y * pixelSize, pixelSize, pixelSize);
+				}
+				
+				// Clear the incoming tile buffer
+				incomingTilesDict = {};
+			}
+			requestAnimationFrame(partialDraw);
 		};
 		
 		// Returns the X position of the mouse/touch at time of request
@@ -332,7 +354,7 @@
             let positionY = getPositionY(event);
 			
 			// Place the current pixel in the buffer
-			tilesDict[`${positionX},${positionY}`] = {x: positionX, y: positionY, type: drawColor};
+			outGoingTilesDict[`${positionX},${positionY}`] = {x: positionX, y: positionY, type: drawColor};
 			
 			// Set this point as the starting point for the line.
 			lastPosition = {x: positionX, y: positionY};
@@ -345,7 +367,7 @@
 			let positionY = getPositionY(event);
 			
 			// Place the current pixel in the buffer
-			tilesDict[`${positionX},${positionY}`] = {x: positionX, y: positionY, type: drawColor};
+			outGoingTilesDict[`${positionX},${positionY}`] = {x: positionX, y: positionY, type: drawColor};
 			
 			// Set this point as the starting point for the line.
 			lastPosition = {x: positionX, y: positionY};
@@ -422,8 +444,13 @@
 			
 			const clearRequest = document.querySelector("#clear");
 			clearRequest.addEventListener('click', clearRequestCall);
+			
+			requestAnimationFrame(partialDraw);
 		};
 		
+		// Add init to the functions to run with the onload event
+		// credit for load code:
+		// https://ckon.wordpress.com/2008/07/25/stop-using-windowonload-in-javascript/
 		window.addEventListener ? 
 		window.addEventListener("load",init,false) : 
 		window.attachEvent && window.attachEvent("onload",init);
