@@ -296,13 +296,12 @@
 				
 				// Force a draw over the entire scene to clear up artifacts
 				// in isolated browser/GPU combinations
-				// note: leaves corner artifacts in IE display
-				ctx.fillStyle = "#00000000";
+				// note: This is done by drawing pixels of the occupying tile types color
+				// in either corner because IE wont support full screen clear rect overlays
+				drawColorSwitcher(clientSandArray[0][0]);
 				ctx.fillRect(0, 0, 0.5, 0.5);
+				drawColorSwitcher(clientSandArray[clientSandArray.length][clientSandArray[0].length]);
 				ctx.fillRect(canvas.width-0.5, canvas.height-0.5, canvas.width, canvas.height);
-				
-				// breaks IE display
-				//ctx.fillRect(0, 0, canvas.width, canvas.height);
 				
 				// Clear the incoming tile buffer
 				incomingTilesDict = {};
