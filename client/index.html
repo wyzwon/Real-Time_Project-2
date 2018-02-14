@@ -300,7 +300,7 @@
 				// in either corner because IE wont support full screen clear rect overlays
 				drawColorSwitcher(clientSandArray[0][0]);
 				ctx.fillRect(0, 0, 0.5, 0.5);
-				drawColorSwitcher(clientSandArray[clientSandArray.length][clientSandArray[0].length]);
+				drawColorSwitcher(clientSandArray[clientSandArray.length - 1][clientSandArray[0].length - 1]);
 				ctx.fillRect(canvas.width-0.5, canvas.height-0.5, canvas.width, canvas.height);
 				
 				// Clear the incoming tile buffer
