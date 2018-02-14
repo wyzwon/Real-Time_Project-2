@@ -292,14 +292,6 @@
 					ctx.fillRect(tile.x * pixelSize, tile.y * pixelSize, pixelSize, pixelSize);
 				}
 				
-				
-				// Force a draw over the entire scene to clear up artifacts
-				// in isolated browser/gpu combinations
-				ctx.fillStyle = "#00000000";
-				ctx.fillRect(0, 0, 0, 0);
-				ctx.fillRect(canvas.width, canvas.height, canvas.width, canvas.height);
-				
-				
 				// Clear the incoming tile buffer
 				incomingTilesDict = {};
 			}
