@@ -42,7 +42,14 @@
 		// credit for sign code:
 		// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/fill
 		if(!Math.sign){
-			Math.sign = function(x){return typeof x === 'number' ? x ? x < 0 ? -1 : 1 : x === x ? 0 : NaN : NaN;}
+			Math.sign = function(x){return typeof x === 'number' ? x ? x < 0 ? -1 : 1 : x === x ? 0 : NaN : NaN;};
+		}
+		
+		// Object.assign is unsupported in IE so a custom version must be inserted
+		// credit for assign code:
+		// https://stackoverflow.com/questions/171251/how-can-i-merge-properties-of-two-javascript-objects-dynamically
+		if(!Object.assign){
+			Object.assign = function(obj1, obj2){for (let attrname in obj2) { obj1[attrname] = obj2[attrname]; }};
 		}
 		
 		const connectSocket = () => {
@@ -284,6 +291,14 @@
 					
 					ctx.fillRect(tile.x * pixelSize, tile.y * pixelSize, pixelSize, pixelSize);
 				}
+				
+				
+				// Force a draw over the entire scene to clear up artifacts
+				// in isolated browser/gpu combinations
+				ctx.fillStyle = "#00000000";
+				ctx.fillRect(0, 0, 0, 0);
+				ctx.fillRect(canvas.width, canvas.height, canvas.width, canvas.height);
+				
 				
 				// Clear the incoming tile buffer
 				incomingTilesDict = {};
