@@ -6,14 +6,6 @@
 	
 	<style>
 		#canvas{
-			-webkit-backface-visibility:hidden;
-			-webkit-transform: translate3d(0,0,0);
-			-webkit-min-device-pixel-ratio: 1.25
-			min-resolution: 120dpi
-			transform: translateZ(0);
-			backface-visibility: hidden;
-			perspective: 1000;
-			
 			border:1px solid #555555;
 			touch-action: none;
 		}
@@ -241,34 +233,34 @@
 		// Identifies the tile and changes the draw color to its setting
 		const drawColorSwitcher = (tile) => {
 			switch(tile){
-						case 1:
-							ctx.fillStyle = "#000000";
-						break;
-						
-						case 2:
-							ctx.fillStyle = "#EBEFA0";
-						break;
-						
-						case 3:
-							ctx.fillStyle = "#0000ff";
-						break;
-						
-						case 4:
-							ctx.fillStyle = "#ffffff";
-						break;
-						
-						case 5:
-							ctx.fillStyle = "#888888";
-						break;
-						
-						case 6:
-							ctx.fillStyle = "#AACCFF";
-						break;
-						
-						default:
-							// show errors tiles in red
-							ctx.fillStyle = "#ff0000";
-					}
+				case 1:
+					ctx.fillStyle = "#000000";
+				break;
+				
+				case 2:
+					ctx.fillStyle = "#EBEFA0";
+				break;
+				
+				case 3:
+					ctx.fillStyle = "#0000ff";
+				break;
+				
+				case 4:
+					ctx.fillStyle = "#ffffff";
+				break;
+				
+				case 5:
+					ctx.fillStyle = "#888888";
+				break;
+				
+				case 6:
+					ctx.fillStyle = "#AACCFF";
+				break;
+				
+				default:
+					// show errors tiles in red
+					ctx.fillStyle = "#ff0000";
+			}
 		}
 		
 		const fullDraw = () => {
@@ -302,18 +294,15 @@
 					ctx.fillRect(tile.x * pixelSize, tile.y * pixelSize, pixelSize, pixelSize);
 				}
 				
-				
 				// Force a draw over the entire scene to clear up artifacts
-				// in isolated browser/gpu combinations
-				//ctx.fillStyle = "#00000000";
+				// in isolated browser/GPU combinations
+				// note: leaves corner artifacts in IE display
+				ctx.fillStyle = "#00000000";
+				ctx.fillRect(0, 0, 0.5, 0.5);
+				ctx.fillRect(canvas.width-0.5, canvas.height-0.5, canvas.width, canvas.height);
 				
 				// breaks IE display
 				//ctx.fillRect(0, 0, canvas.width, canvas.height);
-				
-				// leaves corner artifacts in IE display
-				//ctx.fillRect(0, 0, 0.5, 0.5);
-				//ctx.fillRect(canvas.width-0.5, canvas.height-0.5, canvas.width, canvas.height);
-				
 				
 				// Clear the incoming tile buffer
 				incomingTilesDict = {};
