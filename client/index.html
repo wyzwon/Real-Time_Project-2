@@ -372,18 +372,20 @@
 		};
 		
 		const activateDrawing = (event) => {
-			event.preventDefault();
-			drawing = true;
-			
-			// Calculate the mouse position
-			let positionX = getPositionX(event);
-            let positionY = getPositionY(event);
-			
-			// Place the current pixel in the buffer
-			outGoingTilesDict[`${positionX},${positionY}`] = {x: positionX, y: positionY, type: drawColor};
-			
-			// Set this point as the starting point for the line.
-			lastPosition = {x: positionX, y: positionY};
+            if(event.button === 0){
+			  event.preventDefault();
+			  drawing = true;
+			  
+			  // Calculate the mouse position
+			  let positionX = getPositionX(event);
+              let positionY = getPositionY(event);
+			  
+			  // Place the current pixel in the buffer
+			  outGoingTilesDict[`${positionX},${positionY}`] = {x: positionX, y: positionY, type: drawColor};
+			  
+			  // Set this point as the starting point for the line.
+			  lastPosition = {x: positionX, y: positionY};
+			}
 		};
 		
 		const activateTouchDrawing = (event) => {
