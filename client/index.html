@@ -372,6 +372,7 @@
 		};
 		
 		const activateDrawing = (event) => {
+			// React to left click
             if(event.button === 0){
 			  event.preventDefault();
 			  drawing = true;
@@ -449,7 +450,11 @@
 		};
 		
 		const init = () => {
-			
+			// Prevent default right click behavior
+			canvas.oncontextmenu = function() {
+				return false;
+			}
+
 			// define event for FireFox
 			if (!event) {
 				var event = window.Event;
