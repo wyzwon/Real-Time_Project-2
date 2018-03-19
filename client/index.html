@@ -387,6 +387,16 @@
 			  // Set this point as the starting point for the line.
 			  lastPosition = {x: positionX, y: positionY};
 			}
+			if(event.button === 1){
+				// Calculate the mouse position
+				let positionX = getPositionX(event);
+                let positionY = getPositionY(event);
+				
+				// Set drawColor to the sand value of the currently selected tile
+				drawColor = clientSandArray[positionX][positionY];
+				// Update the selector value to reflect the current sand type
+				document.querySelector("#sandType").value = drawColor;
+			}
 		};
 		
 		const activateTouchDrawing = (event) => {
