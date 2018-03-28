@@ -25,6 +25,7 @@ const enumSandType = Object.freeze({
   salt: 4,
   stone: 5,
   saltWater: 6,
+  seaweed: 7,
 });
 
 // const sandVoid = 1;
@@ -41,6 +42,7 @@ densityDict[enumSandType.water] = 1;
 densityDict[enumSandType.salt] = 2.1;
 // densityDict[sandStone] = -1;
 densityDict[enumSandType.saltWater] = 1.027;
+// densityDict[seaweed] = -1;
 
 
 // Instantiate the entire map as empty air cells
@@ -391,6 +393,10 @@ const updateSand = () => {
             }
           }
         }
+        break;
+
+      case enumSandType.seaweed:
+        //Seaweed code
         break;
 
       default:

@@ -5,6 +5,10 @@
 	<meta http-equiv="X-UA-Compatible" content="IE=Edge"/>
 	
 	<style>
+		body{
+			background: #666666
+		}
+		
 		#canvas{
 			border:1px solid #555555;
 			touch-action: none;
@@ -233,28 +237,39 @@
 		// Identifies the tile and changes the draw color to its setting
 		const drawColorSwitcher = (tile) => {
 			switch(tile){
+				// Air, Void, Eraser
 				case 1:
 					ctx.fillStyle = "#000000";
 				break;
 				
+				// Sand
 				case 2:
-					ctx.fillStyle = "#EBEFA0";
+					ctx.fillStyle = "#ebefa0";
 				break;
 				
+				// Water
 				case 3:
 					ctx.fillStyle = "#0000ff";
 				break;
 				
+				// Salt
 				case 4:
 					ctx.fillStyle = "#ffffff";
 				break;
 				
+				// Stone
 				case 5:
 					ctx.fillStyle = "#888888";
 				break;
 				
+				// Salt Water
 				case 6:
-					ctx.fillStyle = "#AACCFF";
+					ctx.fillStyle = "#aaccff";
+				break;
+				
+				// Seaweed
+				case 7:
+					ctx.fillStyle = "#00ff00";
 				break;
 				
 				default:
