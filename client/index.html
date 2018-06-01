@@ -65,13 +65,9 @@
 			socket.on('disconnect', () => {
 				console.log('disconnected from server');
 			});
-
-			socket.on('msg', (data) => {
-				chat.value = `${data.value}`;
-			});
 			
 			socket.on('setUp', (data) => {
-				// Import the sandArray in full (specifically for first entering the room)
+				// Import the entire sandArray (specifically for first entering the room)
 				clientSandArray = data.value;
 				
 				suggestedPixelSize = data.suggestedPixelSize;
@@ -105,10 +101,11 @@
 				fullDraw();
 			});
 
-			socket.on('fullArray', (data) => {
-				// Import the sandArray in full
-				clientSandArray = data.value;
+			socket.on('fullUpdate', (data) => {
+				// Import the entire sandArray
+				clientSandArray = data;
 				
+				// Redraw the updated scene
 				fullDraw();
 			});
 			
@@ -474,6 +471,11 @@
 			socket.emit('clearRequest', {});
 		};
 		
+		const focusRedraw = () => {
+			// Send the request to clear the scene
+			socket.emit('fullUpdateRequest', {});
+		};
+		
 		const init = () => {
 			// Prevent default right click behavior
 			canvas.oncontextmenu = function() {
@@ -494,6 +496,7 @@
 			//canvas.ontouchend = deactivateDrawing.bind(event);
 			canvas.onmouseout = edgeOutDrawing.bind(event);
 			canvas.onmouseover = edgeInDrawing.bind(event);
+			window.onfocus = focusRedraw.bind();
 			
 			document.querySelector("#sandType").onchange = function(e){
 

@@ -446,19 +446,12 @@ const onJoined = (sock) => {
   });
 };
 
-const onMsg = (sock) => {
+const onFullUpdateRequest = (sock) => {
   const socket = sock;
-
-  socket.on('msgToServer', (data) => {
-    io.sockets.in('room1').emit('msg', { name: socket.name, msg: data.msg });
-  });
-};
-
-const onDraw = (sock) => {
-  const socket = sock;
-
-  socket.on('draw', (data) => {
-    socket.broadcast.emit('drawFromServer', data);
+  
+  socket.on('fullUpdateRequest', () => {
+    // Send the current map data to the user
+    socket.emit('fullUpdate', sandArray);
   });
 };
 
@@ -515,16 +508,13 @@ io.sockets.on('connection', (socket) => {
   // users[socket.id] = { socket };
 
   onJoined(socket);
-  onMsg(socket);
-  onDraw(socket);
+  onFullUpdateRequest(socket);
   onDisconnect(socket);
   onArrayUpdateToServer(socket);
   onClearRequest(socket);
 });
 
 const mainGameLoop = () => {
-  // Record the old frame to iterate through
-  // oldScene = sandArray.map(row => row.slice());
 
   // Move the list of tiles to the working list
   activeUpdateBuffer = {};
