@@ -89,7 +89,7 @@ const tileChanger = (tile) => {
       const cellEdgeW = (tile.x + 3);
 
       // Minimum boundary checks
-      if ((tile.x > 1) && (tile.x < (sandArrayX - 3))) {
+      if ((tile.x > 1) && (tile.x < (sandArrayX - 2))) {
         // Iterate through the 5 tiles horizontally below
         for (let p = (tile.x - 2); p < cellEdgeW; p++) {
           // Check if the tile is plant and not directly below (already activated by default)
@@ -101,7 +101,7 @@ const tileChanger = (tile) => {
       // count border tiles with more out of bounds checks
       else {
         // Iterate through the 5 tiles horizontally above until the right edge
-        for (let p = (tile.x - 2); ((p < cellEdgeW) && (p < (sandArrayX - 3))); p++) {
+        for (let p = (tile.x - 2); ((p < cellEdgeW) && (p < sandArrayX)); p++) {
           // skip pre left edge tiles
           if (p > -1) {
             // Check if the tile is plant and not directly below (already activated by default)
@@ -430,7 +430,7 @@ const updateSand = () => {
           const pHeight = (scY - 1);
 
           // Minimum boundary checks
-          if ((scX > 1) && (scX < (sandArrayX - 3))) {
+          if ((scX > 1) && (scX < (sandArrayX - 2))) {
             // Iterate through the 5 tiles horizontally above
             for (let p = (scX - 2); ((p < cellEdgeW) && !wP); p++) {
               // Check if the tile is water and update the flag
@@ -443,7 +443,7 @@ const updateSand = () => {
           // count border tiles with more out of bounds checks
           else {
             // Iterate through the 5 tiles horizontally above until the right edge
-            for (let p = (scX - 2); ((p < cellEdgeW) && (p < (sandArrayX - 3)) && !wP); p++) {
+            for (let p = (scX - 2); ((p < cellEdgeW) && (p < sandArrayX) && !wP); p++) {
               // skip pre left edge tiles
               if (p > -1) {
                 // Check if the tile is water and update the flag
@@ -456,13 +456,13 @@ const updateSand = () => {
 
           if (wP) {
             // Determine how many plants exist in the 7 tiles above this 1
-            // pA
+            // plantsAbove
             let pA = 0;
 
             const cellEdge = (scX + 5);
 
             // Minimum boundary checks
-            if ((scX > 3) && (scX < (sandArrayX - 5))) {
+            if ((scX > 3) && (scX < (sandArrayX - 4))) {
               // Iterate through the 9 tiles horizontally above
               for (let p = (scX - 4); ((p < cellEdge) && (pA < 3)); p++) {
                 // Check if the tile is a plant and update the counter
@@ -474,7 +474,7 @@ const updateSand = () => {
             // count border tiles with more out of bounds checks
             else {
               // Iterate through the 9 tiles horizontally above until the right edge
-              for (let p = (scX - 3); ((p < cellEdge) && (p < (sandArrayX - 1)) && (pA < 3)); p++) {
+              for (let p = (scX - 3); ((p < cellEdge) && (p < sandArrayX) && (pA < 3)); p++) {
                 // skip pre left edge tiles
                 if (p > -1) {
                   // Check if the tile is a plant and update the counter
@@ -510,7 +510,7 @@ const updateSand = () => {
               }
 
               // Grow if the tile chosen is valid
-              if ((targetX > -1) && (targetX < (sandArrayX - 1))) {
+              if ((targetX > -1) && (targetX < sandArrayX)) {
                 if (sandArray[targetX][pHeight] === enumSandType.water) {
                   const actions = {};
                   const actTile = { x: targetX, y: pHeight, type: enumSandType.seaweed };
