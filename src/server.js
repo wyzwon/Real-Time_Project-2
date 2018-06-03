@@ -79,8 +79,38 @@ const tileChanger = (tile) => {
   if (tile.y > 0) { // Up
     futureUpdateBuffer[`${tile.x},${(tile.y - 1)}`] = { x: tile.x, y: (tile.y - 1) };
   }
-  if (tile.y < sandArrayY - 1) { // Down
+  let pHeight = (tile.y + 1);
+  if (pHeight < sandArrayY) { // Down
     futureUpdateBuffer[`${tile.x},${(tile.y + 1)}`] = { x: tile.x, y: (tile.y + 1) };
+	
+	// Since we have confirmed the lower row exists, take the opportunity to update plants if the tile is water
+	if(tile.type === enumSandType.water){
+		let cellEdgeW = (tile.x + 3);
+			
+		// Minimum boundary checks
+		if((tile.x > 1) && (tile.x < (sandArrayX - 3))){
+			// Iterate through the 5 tiles horizontally below
+			for(let p = (tile.x - 2); p < cellEdgeW; p++){
+				// Check if the tile is plant and not directly below (already activated by default)
+				if((sandArray[p][pHeight] === enumSandType.water) && (p != tile.x)){
+					futureUpdateBuffer[`${p},${pHeight}`] = { x: p, y: pHeight };
+				}
+			}
+		}
+		// count border tiles with more out of bounds checks
+		else{
+			// Iterate through the 5 tiles horizontally above until the right edge
+			for(let p = (tile.x - 2); ((p < cellEdgeW) && (p < (sandArrayX - 3))); p++){
+				// skip pre left edge tiles
+				if(p > -1){
+					// Check if the tile is water and update the flag
+					if((sandArray[p][pHeight] === enumSandType.water) && (p != tile.x)){
+						futureUpdateBuffer[`${p},${pHeight}`] = { x: p, y: pHeight };
+					}
+				}
+			}
+		}
+	}
   }
   if (tile.x > 0) { // Left
     futureUpdateBuffer[`${(tile.x - 1)},${tile.y}`] = { x: (tile.x - 1), y: (tile.y) };
@@ -417,7 +447,7 @@ const updateSand = () => {
 					if(p > -1){
 						// Check if the tile is water and update the flag
 						if(sandArray[p][pHeight] === enumSandType.water){
-						waterPresent = true;
+							waterPresent = true;
 						}
 					}
 				}
