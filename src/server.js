@@ -79,38 +79,39 @@ const tileChanger = (tile) => {
   if (tile.y > 0) { // Up
     futureUpdateBuffer[`${tile.x},${(tile.y - 1)}`] = { x: tile.x, y: (tile.y - 1) };
   }
-  let pHeight = (tile.y + 1);
+  const pHeight = (tile.y + 1);
   if (pHeight < sandArrayY) { // Down
     futureUpdateBuffer[`${tile.x},${(tile.y + 1)}`] = { x: tile.x, y: (tile.y + 1) };
-	
-	// Since we have confirmed the lower row exists, take the opportunity to update plants if the tile is water
-	if(tile.type === enumSandType.water){
-		let cellEdgeW = (tile.x + 3);
-			
-		// Minimum boundary checks
-		if((tile.x > 1) && (tile.x < (sandArrayX - 3))){
-			// Iterate through the 5 tiles horizontally below
-			for(let p = (tile.x - 2); p < cellEdgeW; p++){
-				// Check if the tile is plant and not directly below (already activated by default)
-				if((sandArray[p][pHeight] === enumSandType.water) && (p != tile.x)){
-					futureUpdateBuffer[`${p},${pHeight}`] = { x: p, y: pHeight };
-				}
-			}
-		}
-		// count border tiles with more out of bounds checks
-		else{
-			// Iterate through the 5 tiles horizontally above until the right edge
-			for(let p = (tile.x - 2); ((p < cellEdgeW) && (p < (sandArrayX - 3))); p++){
-				// skip pre left edge tiles
-				if(p > -1){
-					// Check if the tile is water and update the flag
-					if((sandArray[p][pHeight] === enumSandType.water) && (p != tile.x)){
-						futureUpdateBuffer[`${p},${pHeight}`] = { x: p, y: pHeight };
-					}
-				}
-			}
-		}
-	}
+
+    // Since we have confirmed the lower row exists,
+    // take the opportunity to update plants if the tile is water
+    if (tile.type === enumSandType.water) {
+      const cellEdgeW = (tile.x + 3);
+
+      // Minimum boundary checks
+      if ((tile.x > 1) && (tile.x < (sandArrayX - 3))) {
+        // Iterate through the 5 tiles horizontally below
+        for (let p = (tile.x - 2); p < cellEdgeW; p++) {
+          // Check if the tile is plant and not directly below (already activated by default)
+          if ((sandArray[p][pHeight] === enumSandType.seaweed) && (p !== tile.x)) {
+            futureUpdateBuffer[`${p},${pHeight}`] = { x: p, y: pHeight };
+          }
+        }
+      }
+      // count border tiles with more out of bounds checks
+      else {
+        // Iterate through the 5 tiles horizontally above until the right edge
+        for (let p = (tile.x - 2); ((p < cellEdgeW) && (p < (sandArrayX - 3))); p++) {
+          // skip pre left edge tiles
+          if (p > -1) {
+            // Check if the tile is plant and not directly below (already activated by default)
+            if ((sandArray[p][pHeight] === enumSandType.seaweed) && (p !== tile.x)) {
+              futureUpdateBuffer[`${p},${pHeight}`] = { x: p, y: pHeight };
+            }
+          }
+        }
+      }
+    }
   }
   if (tile.x > 0) { // Left
     futureUpdateBuffer[`${(tile.x - 1)},${tile.y}`] = { x: (tile.x - 1), y: (tile.y) };
@@ -419,113 +420,117 @@ const updateSand = () => {
         break;
 
       case enumSandType.seaweed:
-		
-		// If there is another row to grow into
-		if(scY > 0){
-		
-			// Check if there is water to spread into
-			let waterPresent = false;
-			
-			let cellEdgeW = (scX + 3);
-			let pHeight = (scY - 1);
-			
-			// Minimum boundary checks
-			if((scX > 1) && (scX < (sandArrayX - 3))){
-				// Iterate through the 5 tiles horizontally above
-				for(let p = (scX - 2); ((p < cellEdgeW) && !waterPresent); p++){
-					// Check if the tile is water and update the flag
-					if(sandArray[p][pHeight] === enumSandType.water){
-						waterPresent = true;
-					}
-				}
-			}
-			// count border tiles with more out of bounds checks
-			else{
-				// Iterate through the 5 tiles horizontally above until the right edge
-				for(let p = (scX - 2); ((p < cellEdgeW) && (p < (sandArrayX - 3)) && !waterPresent); p++){
-					// skip pre left edge tiles
-					if(p > -1){
-						// Check if the tile is water and update the flag
-						if(sandArray[p][pHeight] === enumSandType.water){
-							waterPresent = true;
-						}
-					}
-				}
-			}
-			
-			if(waterPresent){
-				// Determine how many plants exist in the 7 tiles above this 1 
-				let plantsAbove = 0;
-				
-				let cellEdge = (scX + 5);
 
-				// Minimum boundary checks
-				if((scX > 3) && (scX < (sandArrayX - 5))){
-					// Iterate through the 9 tiles horizontally above
-					for(let p = (scX - 4); ((p < cellEdge) && (plantsAbove < 3)); p++){
-						// Check if the tile is a plant and update the counter
-						if(sandArray[p][pHeight] === enumSandType.seaweed){
-							plantsAbove++;
-						}
-					}
-				}
-				// count border tiles with more out of bounds checks
-				else{
-					// Iterate through the 9 tiles horizontally above until the right edge
-					for(let p = (scX - 3); ((p < cellEdge) && (p < (sandArrayX - 1)) && (plantsAbove < 3)); p++){
-						// skip pre left edge tiles
-						if(p > -1){
-							// Check if the tile is a plant and update the counter
-							if(sandArray[p][pHeight] === enumSandType.seaweed){
-								plantsAbove++;
-							}
-						}
-					}
-				}
-				
-				// Grow if it's clear enough
-				if(plantsAbove < 2){
-					// choose a cell to try to grow into
-					let targetX = 0;
-					switch(Math.floor((Math.random() * 5))){
-						case 0:
-							targetX = scX;
-						break;
-						case 1:
-							targetX = (scX - 1);
-						break;
-						case 2:
-							targetX = (scX + 1);
-						break;
-						case 3:
-							targetX = (scX - 2);
-						break;
-						case 4:
-							targetX = (scX + 2);
-						break;
-					}
-					
-					// Grow if the tile chosen is valid
-					if((targetX > -1) && (targetX < (sandArrayX - 1)) && (sandArray[targetX][pHeight] === enumSandType.water)){
-						const actions = {};
-						let actTile = { x: targetX, y: pHeight, type: enumSandType.seaweed };
-						actions[`${scX},${scY}`] = { tile: actTile, actType: enumActType.changeTile };
-		
-						const actBundles = {};
-						actBundles[0] = actions;
-		
-						// Send the actions to be processed
-						actionManager({ x: scX, y: scY, actionBundles: actBundles });
-					}
-					
-					// Keep putting this cell back on the buffer till it's no longer able to grow
-					futureUpdateBuffer[`${(scX)},${scY}`] = { x: (scX), y: (scY) };
-				}
-			}
-		}
-		
-		
-		
+        // If there is another row to grow into
+        if (scY > 0) {
+          // Check if there is water to spread into
+          let wP = false;
+
+          const cellEdgeW = (scX + 3);
+          const pHeight = (scY - 1);
+
+          // Minimum boundary checks
+          if ((scX > 1) && (scX < (sandArrayX - 3))) {
+            // Iterate through the 5 tiles horizontally above
+            for (let p = (scX - 2); ((p < cellEdgeW) && !wP); p++) {
+              // Check if the tile is water and update the flag
+              if (sandArray[p][pHeight] === enumSandType.water) {
+                // waterPresent
+                wP = true;
+              }
+            }
+          }
+          // count border tiles with more out of bounds checks
+          else {
+            // Iterate through the 5 tiles horizontally above until the right edge
+            for (let p = (scX - 2); ((p < cellEdgeW) && (p < (sandArrayX - 3)) && !wP); p++) {
+              // skip pre left edge tiles
+              if (p > -1) {
+                // Check if the tile is water and update the flag
+                if (sandArray[p][pHeight] === enumSandType.water) {
+                  wP = true;
+                }
+              }
+            }
+          }
+
+          if (wP) {
+            // Determine how many plants exist in the 7 tiles above this 1
+            // pA
+            let pA = 0;
+
+            const cellEdge = (scX + 5);
+
+            // Minimum boundary checks
+            if ((scX > 3) && (scX < (sandArrayX - 5))) {
+              // Iterate through the 9 tiles horizontally above
+              for (let p = (scX - 4); ((p < cellEdge) && (pA < 3)); p++) {
+                // Check if the tile is a plant and update the counter
+                if (sandArray[p][pHeight] === enumSandType.seaweed) {
+                  pA++;
+                }
+              }
+            }
+            // count border tiles with more out of bounds checks
+            else {
+              // Iterate through the 9 tiles horizontally above until the right edge
+              for (let p = (scX - 3); ((p < cellEdge) && (p < (sandArrayX - 1)) && (pA < 3)); p++) {
+                // skip pre left edge tiles
+                if (p > -1) {
+                  // Check if the tile is a plant and update the counter
+                  if (sandArray[p][pHeight] === enumSandType.seaweed) {
+                    pA++;
+                  }
+                }
+              }
+            }
+
+            // Grow if it's clear enough
+            if (pA < 2) {
+              // choose a cell to try to grow into
+              let targetX = 0;
+              switch (Math.floor((Math.random() * 5))) {
+                case 0:
+                  targetX = scX;
+                  break;
+                case 1:
+                  targetX = (scX - 1);
+                  break;
+                case 2:
+                  targetX = (scX + 1);
+                  break;
+                case 3:
+                  targetX = (scX - 2);
+                  break;
+                case 4:
+                  targetX = (scX + 2);
+                  break;
+                default:
+                  break;
+              }
+
+              // Grow if the tile chosen is valid
+              if ((targetX > -1) && (targetX < (sandArrayX - 1))) {
+                if (sandArray[targetX][pHeight] === enumSandType.water) {
+                  const actions = {};
+                  const actTile = { x: targetX, y: pHeight, type: enumSandType.seaweed };
+                  actions[`${scX},${scY}`] = { tile: actTile, actType: enumActType.changeTile };
+
+                  const actBundles = {};
+                  actBundles[0] = actions;
+
+                  // Send the actions to be processed
+                  actionManager({ x: scX, y: scY, actionBundles: actBundles });
+                }
+              }
+
+              // Keep putting this cell back on the buffer till it's no longer able to grow
+              futureUpdateBuffer[`${(scX)},${scY}`] = { x: (scX), y: (scY) };
+            }
+          }
+        }
+
+
         break;
 
       default:
@@ -577,7 +582,7 @@ const onJoined = (sock) => {
 
 const onFullUpdateRequest = (sock) => {
   const socket = sock;
-  
+
   socket.on('fullUpdateRequest', () => {
     // Send the current map data to the user
     socket.emit('fullUpdate', sandArray);
