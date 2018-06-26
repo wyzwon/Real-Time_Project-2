@@ -649,7 +649,6 @@ io.sockets.on('connection', (socket) => {
 });
 
 const mainGameLoop = () => {
-
   // Move the list of tiles to the working list
   activeUpdateBuffer = {};
   Object.assign(activeUpdateBuffer, futureUpdateBuffer);
