@@ -1,15 +1,8 @@
 const http = require('http');
-const fs = require('fs');
-const socketio = require('socket.io');
+const express = require('express');
+const path = require('path');
 
 const port = process.env.PORT || process.env.NODE_PORT || 3000;
-
-// read the client html file into memory
-// __dirname in node is the current directory
-// (in this case the same folder as the server js file)
-const index = fs.readFileSync(`${__dirname}/../client/index.html`);
-// const sandClient = fs.readFileSync(`${__dirname}/../client/scripts/Sand.js`);
-const favicon = fs.readFileSync(`${__dirname}/../client/favicon.ico`);
 
 const sandArrayX = 150;// 600;
 const sandArrayY = 100;// 400;
@@ -540,33 +533,18 @@ const updateSand = () => {
   }
 };
 
+const app = express();
 
-const onRequest = (request, response) => {
-  switch (request.url) {
-    case '/':
-      response.writeHead(200, { 'Content-Type': 'text/html' });
-      response.write(index);
-      response.end();
-      break;
-    case '/favicon.ico':
-      response.writeHead(200, { 'Content-Type': 'image/x-icon' });
-      response.write(favicon);
-      response.end();
-      break;
-    default:
-      response.writeHead(200, { 'Content-Type': 'text/html' });
-      response.write(index);
-      response.end();
-      break;
-  }
-};
+app.get(/^(.+)$/, (request, response) => {
+  response.sendFile(request.params[0], { root: path.join(__dirname, '../client') });
+});
 
-const app = http.createServer(onRequest).listen(port);
-
+const server = http.createServer(app);
+server.listen(port);
 console.log(`Listening on 127.0.0.1: ${port}`);
 
 // pass in the http server into socketio and grab the websocket server as io
-const io = socketio(app);
+const io = require('socket.io').listen(server);
 
 const onJoined = (sock) => {
   const socket = sock;
