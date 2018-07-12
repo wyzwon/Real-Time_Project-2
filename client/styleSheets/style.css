@@ -1,0 +1,8 @@
+body{
+	background: #666666
+}
+
+#canvas{
+	border:1px solid #555555;
+	touch-action: none;
+}

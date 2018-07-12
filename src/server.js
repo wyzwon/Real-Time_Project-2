@@ -535,6 +535,9 @@ const updateSand = () => {
 
 const app = express();
 
+// opt out of 'powered-by' header
+app.disable('x-powered-by');
+
 app.get(/^(.+)$/, (request, response) => {
   response.sendFile(request.params[0], { root: path.join(__dirname, '../client') });
 });
