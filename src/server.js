@@ -30,6 +30,8 @@ densityDict[enumSandType.salt] = 2.1;
 densityDict[enumSandType.saltWater] = 1.027;
 // densityDict[seaweed] = -1;
 
+// contains the map change requests for all users
+let sceneVoteDict = {};
 
 // Instantiate the entire map as empty air cells
 let sandArray = new Array(sandArrayX);
@@ -549,6 +551,69 @@ console.log(`Listening on 127.0.0.1: ${port}`);
 // pass in the http server into socketio and grab the websocket server as io
 const io = require('socket.io').listen(server);
 
+
+// Tally the scene votes and inform the clients
+const sceneVoteTally = () => {
+  let clearCount = 0;
+  let seaFloorCount = 0;
+  let waterCount = 0;
+
+  const changeListKeys = Object.keys(sceneVoteDict);
+
+  // Tally all the votes
+  for (let i = 0; i < changeListKeys.length; i++) {
+    switch (sceneVoteDict[changeListKeys[i]]) {
+      case 0:
+        // No vote
+        break;
+      case 1:
+        // Clear scene
+        clearCount++;
+        break;
+      case 2:
+        // Sea floor scene
+        seaFloorCount++;
+        break;
+      case 3:
+        // Sea floor scene
+        waterCount++;
+        break;
+      default:
+        console.log(`Error: unrecognized vote type: ${sceneVoteDict[i]}`);
+        break;
+    }
+  }
+
+  // Note down how many people are in the room
+  const roomTotal = io.sockets.adapter.rooms.room1.length;
+
+  // switch scenes if any has enough votes and if not, update the tally
+  if ((clearCount / roomTotal) > 0.5) {
+    sandArray = blankBufferArray.map(row => row.slice());
+    io.sockets.in('room1').emit('changeScene', 1);
+    sceneVoteDict = {};
+  }
+  else if ((seaFloorCount / roomTotal) > 0.5) {
+    // sandArray = seaArray.map(row => row.slice());
+    io.sockets.in('room1').emit('changeScene', 2);
+  }
+  else if ((waterCount / roomTotal) > 0.5) {
+    // sandArray = water.map(row => row.slice());
+    io.sockets.in('room1').emit('changeScene', 3);
+  }
+  else {
+    // push Updated vote stats to the clients
+    io.sockets.in('room1').emit('sceneVote', { clr: clearCount, sea: seaFloorCount, h2o: waterCount });
+  }
+};
+
+
+// When player count changes, update the clients
+const onPlayerCountUpdate = () => {
+  io.sockets.in('room1').emit('playerCount', io.sockets.adapter.rooms.room1.length);
+};
+
+
 const onJoined = (sock) => {
   const socket = sock;
 
@@ -556,8 +621,14 @@ const onJoined = (sock) => {
     socket.join('room1');
     console.log(`${socket.id} joined room1`);
 
+    // Update player count
+    onPlayerCountUpdate();
+
     // Send the current map data to the new user along with the suggested size of pixels
     socket.emit('setUp', { value: sandArray, suggestedPixelSize });
+
+    // Tally the vote and broadcast the results so the new player gets the current stats
+    sceneVoteTally();
   });
 };
 
@@ -596,13 +667,15 @@ const onArrayUpdateToServer = (sock) => {
   });
 };
 
-const onClearRequest = (sock) => {
+
+const onSceneChangeRequest = (sock) => {
   const socket = sock;
 
-  socket.on('clearRequest', () => {
-    sandArray = blankBufferArray.map(row => row.slice());
+  socket.on('stageChangeRequest', (data) => {
+    // Set users vote to the their new request
+    sceneVoteDict[socket.id] = data;
 
-    io.sockets.in('room1').emit('clearScene', {});
+    sceneVoteTally();
   });
 };
 
@@ -611,6 +684,13 @@ const onDisconnect = (sock) => {
   const socket = sock;
 
   socket.on('disconnect', () => {
+    // Remove the disconnected users vote from the vote dictionary
+    delete sceneVoteDict[socket.id];
+    // Recalculate and update the vote
+    sceneVoteTally();
+    // Update player count
+    onPlayerCountUpdate();
+
     console.log(`${socket.id} Left room1`);
     socket.leave('room1');
   });
@@ -626,7 +706,7 @@ io.sockets.on('connection', (socket) => {
   onFullUpdateRequest(socket);
   onDisconnect(socket);
   onArrayUpdateToServer(socket);
-  onClearRequest(socket);
+  onSceneChangeRequest(socket);
 });
 
 const mainGameLoop = () => {

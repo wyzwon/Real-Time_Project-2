@@ -34,6 +34,7 @@
 		let outGoingTilesDict = {};
 		let incomingTilesDict = {};
 		
+		// Currently selected particle type
 		let drawColor = parseInt(document.querySelector("#sandType").value);
 		
 		let lastPosition = {};
@@ -107,17 +108,71 @@
 				fullDraw();
 			});
 			
-			// Clear the local scene when server clears the main scene
-			socket.on('clearScene', (data) => {
+			// Change the scene to the preset ordered by the server
+			socket.on('changeScene', (data) => {
 				// Clear the incoming Tiles Dictionary
 				incomingTilesDict = {};
 				
-				clientSandArray = blankSceneArray.map(row => row.slice());
+				// clear the scoreboard
+				// Clear scene
+				document.getElementById('clearCount').innerHTML = 0;
+				document.getElementById('clearProgress').value = 0;
+				// Lake floor scene
+				document.getElementById('lakeFloorCount').innerHTML = 0;
+				document.getElementById('lakeFloorProgress').value = 0;
+				// Water Scene
+				document.getElementById('waterCount').innerHTML = 0;
+				document.getElementById('waterProgress').value = 0;
+				
+				switch (data) {
+				// Clear scene
+				case 1:	
+					clientSandArray = blankSceneArray.map(row => row.slice());
+					break;
+				// Sea floor scene
+				case 2:	
+					break;
+				// Sea floor scene
+				case 3:
+					break;
+				default:
+					console.log("Error: unrecognized scene type: " + data);
+					break;
+				}
 
 				fullDraw();
 			});
 			
-			// handle sandArray updates
+			// Update the vote count
+			socket.on('sceneVote', (data) => {
+				// Fill in the scoreboard
+				// Clear scene
+				document.getElementById('clearCount').innerHTML = data.clr;
+				document.getElementById('clearProgress').value = data.clr;
+				// Lake floor scene
+				document.getElementById('lakeFloorCount').innerHTML = data.sea;
+				document.getElementById('lakeFloorProgress').value = data.sea;
+				// Water Scene
+				document.getElementById('waterCount').innerHTML = data.h2o;
+				document.getElementById('waterProgress').value = data.h2o;
+			});
+			
+			// Update the player count
+			socket.on('playerCount', (data) => {
+				// update the total player count UI
+				document.getElementById('playerCount').innerHTML = data;
+
+				// Calculate the first integer above 50% of total player count
+				// First Past the Post Vote Total
+				let fppVoteTotal = Math.floor((data / 2) + 1);
+
+				// update the max value for each progress bar
+				document.getElementById('clearProgress').max = fppVoteTotal;
+				document.getElementById('lakeFloorProgress').max = fppVoteTotal;
+				document.getElementById('waterProgress').max = fppVoteTotal;
+			});
+			
+			// Handle sandArray updates
 			socket.on('arrayUpdates', (data) => {
 			
 				// Add tiles to the incoming buffer
@@ -464,9 +519,9 @@
 			}
 		};
 		
-		const clearRequestCall = (event) => {
+		const stageChangeRequestCall = (event) => {
 			// Send the request to clear the scene
-			socket.emit('clearRequest', {});
+			socket.emit('stageChangeRequest', parseInt(document.querySelector("#voteChoice").value));
 		};
 		
 		const focusRedraw = () => {
@@ -501,8 +556,8 @@
 				drawColor = parseInt(e.target.value);
 			}
 			
-			const clearRequest = document.querySelector("#clear");
-			clearRequest.addEventListener('click', clearRequestCall);
+			const stageChangeRequest = document.querySelector("#voteScene");
+			stageChangeRequest.addEventListener('click', stageChangeRequestCall);
 			
 			requestAnimationFrame(partialDraw);
 		};
@@ -531,7 +586,40 @@
 				<option value="3">Water</option>
 			</select>
 		</label>
-		<input id="clear" type='button' value='clear'/>
+		<div id="sceneVote">
+			<div id="voteFiller">
+				<label>Scenes Options
+					<select id="voteChoice">
+						<option value="0" selected>No Change</option>
+						<option value="1">Clear</option>
+						<option value="2">Lake floor</option>
+						<option value="3">Water</option>
+					</select>
+				</label>
+				<input id="voteScene" type='button' value='Cast Vote'/>
+			</div>
+			<div id="voteResults">
+				<div id="voteClear">
+					<span>Clear Total: </span>
+					<span id="clearCount"></span>
+					<progress id="clearProgress" value="22" max="100">
+				</div>
+				<div id="voteLakeFloor">
+					<span>Lake Floor Total: </span>
+					<span id="lakeFloorCount"></span>
+					<progress id="lakeFloorProgress" value="22" max="100">
+				</div>
+				<div id="voteWater">
+					<span>Water Total: </span>
+					<span id="waterCount"></span>
+					<progress id="waterProgress" value="22" max="100">
+				</div>
+			</div>
+		</div>
+		<div id="players">
+			<span>Players Online: </span>
+			<span id="playerCount"></span>
+		<div>
 	</div>
 </body>
 </html>
