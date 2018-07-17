@@ -562,6 +562,7 @@ const sceneVoteTally = () => {
   let clearCount = 0;
   let seaFloorCount = 0;
   let waterCount = 0;
+  let randomCount = 0;
 
   const changeListKeys = Object.keys(sceneVoteDict);
 
@@ -580,8 +581,12 @@ const sceneVoteTally = () => {
         seaFloorCount++;
         break;
       case 3:
-        // Sea floor scene
+        // Water scene
         waterCount++;
+        break;
+      case 4:
+        // Random scene
+        randomCount++;
         break;
       default:
         console.log(`Error: unrecognized vote type: ${sceneVoteDict[i]}`);
@@ -600,6 +605,8 @@ const sceneVoteTally = () => {
     }
 
     io.sockets.in('room1').emit('changeScene', 1);
+
+    // Clear the vote
     sceneVoteDict = {};
   }
   else if ((seaFloorCount / roomTotal) > 0.5) {
@@ -643,6 +650,8 @@ const sceneVoteTally = () => {
     }
 
     io.sockets.in('room1').emit('changeScene', 2);
+
+    // Clear the vote
     sceneVoteDict = {};
   }
   else if ((waterCount / roomTotal) > 0.5) {
@@ -652,13 +661,32 @@ const sceneVoteTally = () => {
     }
 
     io.sockets.in('room1').emit('changeScene', 3);
-	
-	// Clear the vote
+
+    // Clear the vote
+    sceneVoteDict = {};
+  }
+  else if ((randomCount / roomTotal) > 0.5) {
+    // Iterate through all cells and assign them a random particle
+    for (let i = 0; i < sandArray.length; i++) {
+      for (let j = 0; j < sandArray[0].length; j++) {
+        sandArray[i][j] = Math.floor((Math.random() * 7) + 1);
+        // Avoid checking stone
+        if (sandArray[i][j] !== enumSandType.stone) {
+          futureUpdateBuffer[`${(i)},${j}`] = { x: (i), y: (j) };
+        }
+      }
+    }
+
+    io.sockets.in('room1').emit('changeScene', 4);
+
+    // Clear the vote
     sceneVoteDict = {};
   }
   else {
     // push Updated vote stats to the clients
-    io.sockets.in('room1').emit('sceneVote', { clr: clearCount, sea: seaFloorCount, h2o: waterCount });
+    io.sockets.in('room1').emit('sceneVote', {
+      clr: clearCount, sea: seaFloorCount, h2o: waterCount, ran: randomCount,
+    });
   }
 };
 

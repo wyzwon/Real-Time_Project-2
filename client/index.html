@@ -162,6 +162,9 @@
 				// Water Scene
 				document.getElementById('waterCount').innerHTML = 0;
 				document.getElementById('waterProgress').value = 0;
+				// Random Scene
+				document.getElementById('randomCount').innerHTML = 0;
+				document.getElementById('randomProgress').value = 0;
 				
 				switch (data) {
 				// Clear scene
@@ -220,6 +223,10 @@
 						clientSandArray[i].fill(enumSandType.water);
 					}
 					break;
+				// random scene
+				case 4:
+					focusRedraw();
+					break;
 				default:
 					console.log("Error: unrecognized scene type: " + data);
 					break;
@@ -240,6 +247,9 @@
 				// Water Scene
 				document.getElementById('waterCount').innerHTML = data.h2o;
 				document.getElementById('waterProgress').value = data.h2o;
+				// Random Scene
+				document.getElementById('randomCount').innerHTML = data.ran;
+				document.getElementById('randomProgress').value = data.ran;
 			});
 			
 			// Update the player count
@@ -255,6 +265,7 @@
 				document.getElementById('clearProgress').max = fppVoteTotal;
 				document.getElementById('lakeFloorProgress').max = fppVoteTotal;
 				document.getElementById('waterProgress').max = fppVoteTotal;
+				document.getElementById('randomProgress').max = fppVoteTotal;
 			});
 			
 			// Handle sandArray updates
@@ -679,6 +690,7 @@
 						<option value="1">Clear</option>
 						<option value="2">Lake floor</option>
 						<option value="3">Water</option>
+						<option value="4">Random Chaos</option>
 					</select>
 				</label>
 				<input id="voteScene" type='button' value='Cast Vote'/>
@@ -698,6 +710,11 @@
 					<span>Water Total: </span>
 					<span id="waterCount"></span>
 					<progress id="waterProgress" value="0" max="100"></progress>
+				</div>
+				<div id="voteRandom">
+					<span>Random Chaos Total: </span>
+					<span id="randomCount"></span>
+					<progress id="randomProgress" value="0" max="100"></progress>
 				</div>
 			</div>
 		</div>
