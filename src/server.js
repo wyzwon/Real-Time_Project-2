@@ -11,6 +11,7 @@ const suggestedPixelSize = 4;// 2;
 const enumActType = Object.freeze({ stayActive: 1, changeTile: 2 });
 
 // Note: air === void === eraser
+// Warning: must be added as consecutive integers above 0
 const enumSandType = Object.freeze({
   air: 1,
   sand: 2,
@@ -20,6 +21,9 @@ const enumSandType = Object.freeze({
   saltWater: 6,
   seaweed: 7,
 });
+
+// Store the total number of particle types that exist
+const particleTypeCount = Object.keys(enumSandType).length;
 
 const densityDict = {};
 densityDict[enumSandType.air] = 0;
@@ -186,8 +190,6 @@ const decisionManager = () => {
             // Iterate through the actions tied to this bundle
             for (let k = 0; k < changeListKeysAB.length; k++) {
               // Delete the action
-              // console.log("deleting:");
-              // console.log(actionHolder[changeListKeysAB[k]][BundleID]);
               delete actionHolder[changeListKeysAB[k]][BundleID];
             }
             // There is currently no use for deleting this but this is where it would happen
@@ -669,7 +671,7 @@ const sceneVoteTally = () => {
     // Iterate through all cells and assign them a random particle
     for (let i = 0; i < sandArray.length; i++) {
       for (let j = 0; j < sandArray[0].length; j++) {
-        sandArray[i][j] = Math.floor((Math.random() * 7) + 1);
+        sandArray[i][j] = Math.floor((Math.random() * particleTypeCount) + 1);
         // Avoid checking stone
         if (sandArray[i][j] !== enumSandType.stone) {
           futureUpdateBuffer[`${(i)},${j}`] = { x: (i), y: (j) };
@@ -743,10 +745,16 @@ const onArrayUpdateToServer = (sock) => {
       if ((tile.x !== null) && (tile.y !== null)) {
         // If coordinates in bounds (and not undefined)
         if ((tile.x < sandArrayX) && (tile.y < sandArrayY) && (tile.x >= 0) && (tile.y >= 0)) {
-          // If tile is valid
-          if (tile.type) {
-            // Add the changes to the changeBuffer
-            incomingChangeBuffer[`${tile.x},${tile.y}`] = tile;
+          // If both coordinates are integers
+          if (Number.isInteger(tile.x) && Number.isInteger(tile.y)) {
+            // If tile is within valid ID range
+            if ((tile.type > 0) && (tile.type <= particleTypeCount)) {
+              // If the type is an integer
+              if (Number.isInteger(tile.type)) {
+                // Add the changes to the changeBuffer
+                incomingChangeBuffer[`${tile.x},${tile.y}`] = tile;
+              }
+            }
           }
         }
       }
