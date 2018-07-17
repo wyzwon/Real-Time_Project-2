@@ -29,11 +29,21 @@
 		let suggestedPixelSize;
 
 		let clientSandArray = [];
-		let blankSceneArray = [];
 
 		let outGoingTilesDict = {};
 		let incomingTilesDict = {};
 		
+		// Note: air === void === eraser
+		const enumSandType = Object.freeze({
+			air: 1,
+			sand: 2,
+			water: 3,
+			salt: 4,
+			stone: 5,
+			saltWater: 6,
+			seaweed: 7,
+		});
+			
 		// Currently selected particle type
 		let drawColor = parseInt(document.querySelector("#sandType").value);
 		
@@ -54,6 +64,54 @@
 			Object.assign = function(obj1, obj2){for (let attrname in obj2) { obj1[attrname] = obj2[attrname]; }};
 		}
 		
+		// Array.fill is unsupported in IE so a custom version must be inserted
+		// credit for fill code (modified for ECMAScript 6):
+		// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/fill
+		if (!Array.prototype.fill) {
+			Object.defineProperty(Array.prototype, 'fill', {
+				value: function(value) {
+			
+					// Steps 1-2.
+					if (this == null) {
+						throw new TypeError('this is null or not defined');
+					}
+				
+					let O = Object(this);
+				
+					// Steps 3-5.
+					let len = O.length >>> 0;
+				
+					// Steps 6-7.
+					let start = arguments[1];
+					let relativeStart = start >> 0;
+				
+					// Step 8.
+					let k = relativeStart < 0 ?
+						Math.max(len + relativeStart, 0) :
+						Math.min(relativeStart, len);
+				
+					// Steps 9-10.
+					let end = arguments[2];
+					let relativeEnd = end === undefined ?
+						len : end >> 0;
+				
+					// Step 11.
+					let final = relativeEnd < 0 ?
+						Math.max(len + relativeEnd, 0) :
+						Math.min(relativeEnd, len);
+				
+					// Step 12.
+					while (k < final) {
+						O[k] = value;
+						k++;
+					}
+				
+					// Step 13.
+					return O;
+				}
+			});
+		}
+		
 		const connectSocket = () => {
 			socket = io.connect();
 			socket.on('connect', () => {
@@ -72,25 +130,6 @@
 				suggestedPixelSize = data.suggestedPixelSize;
 				if(suggestedPixelSize){
 					pixelSize = suggestedPixelSize;
-				}
-				
-				// Assign blankSceneArray the dimensions of clientSandArray
-				blankSceneArray = clientSandArray.map(row => row.slice());
-				// If not IE, use Array.fill
-				if([].fill){
-					for (let i = 0; i < blankSceneArray.length; i++) {
-						blankSceneArray[i] = new Array(blankSceneArray[0].length);
-						blankSceneArray[i].fill(1);
-					}
-				}
-				// If IE, fill cells iteratively
-				else{
-					for (let i = 0; i < blankSceneArray.length; i++) {
-						blankSceneArray[i] = new Array(blankSceneArray[0].length);
-						for (let j = 0; j < blankSceneArray[i].length; j++) {
-							blankSceneArray[i][j] = 1;
-						}
-					}
 				}
 				
 				// Set the canvas size to match sandArray
@@ -126,14 +165,60 @@
 				
 				switch (data) {
 				// Clear scene
-				case 1:	
-					clientSandArray = blankSceneArray.map(row => row.slice());
+				case 1:
+					for (let i = 0; i < clientSandArray.length; i++) {
+						clientSandArray[i] = new Array(clientSandArray[0].length);
+						clientSandArray[i].fill(enumSandType.air);
+					}
 					break;
 				// Sea floor scene
-				case 2:	
+				case 2:
+					let sandArrayX = clientSandArray.length;
+					let sandArrayY = clientSandArray[0].length;
+					
+					// Check if the dimensions are big enough to work
+					if((sandArrayY > 7) && (sandArrayX > 2)){
+						// Calculate where the sand water border should be
+						let borderRow = Math.floor((sandArrayY / 8) * 7);
+						// Calculate plant offset
+						let leftPlant = Math.floor(sandArrayX / 3);
+						let rightPlant = (sandArrayX - leftPlant);
+						// Preserve symmetry by adjusting for 0 index
+						leftPlant = (leftPlant - 1);
+						
+						// make a template for a slice of the scene
+						let templateArray  = new Array(clientSandArray[0].length);
+						// Fill it with water
+						templateArray.fill(enumSandType.water);
+						// Fill the end with sand
+						for (let i = borderRow; i < templateArray.length; i++) {
+							templateArray[i] = enumSandType.sand;
+						}
+						
+						// copy the template to every sub array
+						for (let i = 0; i < clientSandArray.length; i++) {
+							clientSandArray[i] = templateArray.slice();
+						}
+						
+						
+						// Insert the plant cells in the top sand layer
+						clientSandArray[leftPlant][borderRow] = enumSandType.seaweed;
+						clientSandArray[rightPlant][borderRow] = enumSandType.seaweed;
+					}
+					// Fall back to pure water
+					else{
+						for (let i = 0; i < clientSandArray.length; i++) {
+							clientSandArray[i] = new Array(clientSandArray[0].length);
+							clientSandArray[i].fill(enumSandType.water);
+						}
+					}
 					break;
-				// Sea floor scene
+				// water scene
 				case 3:
+					for (let i = 0; i < clientSandArray.length; i++) {
+						clientSandArray[i] = new Array(clientSandArray[0].length);
+						clientSandArray[i].fill(enumSandType.water);
+					}
 					break;
 				default:
 					console.log("Error: unrecognized scene type: " + data);
@@ -602,17 +687,17 @@
 				<div id="voteClear">
 					<span>Clear Total: </span>
 					<span id="clearCount"></span>
-					<progress id="clearProgress" value="22" max="100">
+					<progress id="clearProgress" value="0" max="100"></progress>
 				</div>
 				<div id="voteLakeFloor">
 					<span>Lake Floor Total: </span>
 					<span id="lakeFloorCount"></span>
-					<progress id="lakeFloorProgress" value="22" max="100">
+					<progress id="lakeFloorProgress" value="0" max="100"></progress>
 				</div>
 				<div id="voteWater">
 					<span>Water Total: </span>
 					<span id="waterCount"></span>
-					<progress id="waterProgress" value="22" max="100">
+					<progress id="waterProgress" value="0" max="100"></progress>
 				</div>
 			</div>
 		</div>

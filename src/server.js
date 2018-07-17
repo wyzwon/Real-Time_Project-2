@@ -34,7 +34,7 @@ densityDict[enumSandType.saltWater] = 1.027;
 let sceneVoteDict = {};
 
 // Instantiate the entire map as empty air cells
-let sandArray = new Array(sandArrayX);
+const sandArray = new Array(sandArrayX);
 for (let i = 0; i < sandArray.length; i++) {
   sandArray[i] = new Array(sandArrayY);
   sandArray[i].fill(enumSandType.air);
@@ -55,7 +55,7 @@ let actionBundleHolder = {};
 let moved = false;
 
 // Instantiate an array of empty cells to reset the scene with.
-const blankBufferArray = sandArray.map(row => row.slice());
+// const blankBufferArray = sandArray.map(row => row.slice());
 
 
 // https://stackoverflow.com/questions/25492329/is-array-slice-enough-to-handle-a-multidimensional-array-in-javascript
@@ -554,6 +554,11 @@ const io = require('socket.io').listen(server);
 
 // Tally the scene votes and inform the clients
 const sceneVoteTally = () => {
+  // Exit if room is empty
+  if (!io.sockets.adapter.rooms.room1) {
+    return;
+  }
+
   let clearCount = 0;
   let seaFloorCount = 0;
   let waterCount = 0;
@@ -589,17 +594,67 @@ const sceneVoteTally = () => {
 
   // switch scenes if any has enough votes and if not, update the tally
   if ((clearCount / roomTotal) > 0.5) {
-    sandArray = blankBufferArray.map(row => row.slice());
+    for (let i = 0; i < sandArray.length; i++) {
+      sandArray[i] = new Array(sandArray[0].length);
+      sandArray[i].fill(enumSandType.air);
+    }
+
     io.sockets.in('room1').emit('changeScene', 1);
     sceneVoteDict = {};
   }
   else if ((seaFloorCount / roomTotal) > 0.5) {
-    // sandArray = seaArray.map(row => row.slice());
+    // Check if the dimensions are big enough to work
+    if ((sandArrayY > 7) && (sandArrayX > 2)) {
+      // Calculate where the sand water border should be
+      const borderRow = Math.floor((sandArrayY / 8) * 7);
+      // Calculate plant offset
+      let leftPlant = Math.floor(sandArrayX / 3);
+      const rightPlant = (sandArrayX - leftPlant);
+      // Preserve symmetry by adjusting for 0 index
+      leftPlant -= 1;
+
+      // make a template for a slice of the scene
+      const templateArray = new Array(sandArray[0].length);
+      // Fill it with water
+      templateArray.fill(enumSandType.water);
+      // Fill the end with sand
+      for (let i = borderRow; i < templateArray.length; i++) {
+        templateArray[i] = enumSandType.sand;
+      }
+
+      for (let i = 0; i < sandArray.length; i++) {
+        sandArray[i] = templateArray.slice();
+      }
+
+      // Insert the plant cells in the top sand layer
+      sandArray[leftPlant][borderRow] = enumSandType.seaweed;
+      sandArray[rightPlant][borderRow] = enumSandType.seaweed;
+
+      // add the plants to the update buffer
+      futureUpdateBuffer[`${(leftPlant)},${borderRow}`] = { x: (leftPlant), y: (borderRow) };
+      futureUpdateBuffer[`${(rightPlant)},${borderRow}`] = { x: (rightPlant), y: (borderRow) };
+    }
+    // Fall back to pure water
+    else {
+      for (let i = 0; i < sandArray.length; i++) {
+        sandArray[i] = new Array(sandArray[0].length);
+        sandArray[i].fill(enumSandType.water);
+      }
+    }
+
     io.sockets.in('room1').emit('changeScene', 2);
+    sceneVoteDict = {};
   }
   else if ((waterCount / roomTotal) > 0.5) {
-    // sandArray = water.map(row => row.slice());
+    for (let i = 0; i < sandArray.length; i++) {
+      sandArray[i] = new Array(sandArray[0].length);
+      sandArray[i].fill(enumSandType.water);
+    }
+
     io.sockets.in('room1').emit('changeScene', 3);
+	
+	// Clear the vote
+    sceneVoteDict = {};
   }
   else {
     // push Updated vote stats to the clients
@@ -610,6 +665,10 @@ const sceneVoteTally = () => {
 
 // When player count changes, update the clients
 const onPlayerCountUpdate = () => {
+  // Exit if room is empty
+  if (!io.sockets.adapter.rooms.room1) {
+    return;
+  }
   io.sockets.in('room1').emit('playerCount', io.sockets.adapter.rooms.room1.length);
 };
 
