@@ -43,6 +43,10 @@
 			saltWater: 6,
 			seaweed: 7,
 		});
+		
+		// Client copy of the scene lengths
+		let sandArrayX = 0;
+		let sandArrayY = 0;
 			
 		// Currently selected particle type
 		let drawColor = parseInt(document.querySelector("#sandType").value);
@@ -126,6 +130,9 @@
 			socket.on('setUp', (data) => {
 				// Import the entire sandArray (specifically for first entering the room)
 				clientSandArray = data.value;
+				
+				sandArrayX = clientSandArray.length;
+				sandArrayY = clientSandArray[0].length;
 				
 				suggestedPixelSize = data.suggestedPixelSize;
 				if(suggestedPixelSize){
@@ -225,7 +232,8 @@
 					break;
 				// random scene
 				case 4:
-					focusRedraw();
+					// Request a full scene update from the server
+					socket.emit('fullUpdateRequest', {});
 					break;
 				default:
 					console.log("Error: unrecognized scene type: " + data);
@@ -289,6 +297,11 @@
 			sendTilesToServer();
 		}, 70);
 		
+		// Returns true if coordinates are in bounds
+		const inBounds = (x,y) => {
+			return(((x >= 0) && (x < sandArrayX)) && ((y >= 0) && (y < sandArrayY)));
+		}
+		
 		// calculate a line between two mouse points and add them to the buffer with the current draw color
 		const lineCalculator = (x0, y0, x1, y1) => {
 			let deltaX = x1 - x0;
@@ -309,7 +322,7 @@
 
 						for(let x = x0; x <= x1; x++){
 							// Add the tile to the list to be sent to the server,
-							if((x >= 0) && (y >= 0)){
+							if(inBounds(x,y)){
 								outGoingTilesDict[`${x},${y}`] = {x: x, y: y, type: drawColor};
 							}
 							
@@ -325,7 +338,7 @@
 						
 						for(let x = x0; x >= x1; x--){
 							// Add the tile to the list to be sent to the server,
-							if((x >= 0) && (y >= 0)){
+							if(inBounds(x,y)){
 								outGoingTilesDict[`${x},${y}`] = {x: x, y: y, type: drawColor};
 							}
 							
@@ -349,7 +362,7 @@
 
 						for(let y = y0; y <= y1; y++){
 							// Add the tile to the list to be sent to the server,
-							if((x >= 0) && (y >= 0)){
+							if(inBounds(x,y)){
 								outGoingTilesDict[`${x},${y}`] = {x: x, y: y, type: drawColor};
 							}
 							
@@ -365,7 +378,7 @@
 
 						for(let y = y0; y >= y1; y--){
 							// Add the tile to the list to be sent to the server,
-							if((x >= 0) && (y >= 0)){
+							if(inBounds(x,y)){
 								outGoingTilesDict[`${x},${y}`] = {x: x, y: y, type: drawColor};
 							}
 							
@@ -615,11 +628,13 @@
 			}
 		};
 		
+		// Send the server the clients vote choice
 		const stageChangeRequestCall = (event) => {
 			// Send the request to clear the scene
 			socket.emit('stageChangeRequest', parseInt(document.querySelector("#voteChoice").value));
 		};
 		
+		// Request a redraw when focus is returned to the window
 		const focusRedraw = () => {
 			// Send the request to clear the scene
 			socket.emit('fullUpdateRequest', {});
