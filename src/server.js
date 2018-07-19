@@ -672,8 +672,8 @@ const sceneVoteTally = () => {
     for (let i = 0; i < sandArray.length; i++) {
       for (let j = 0; j < sandArray[0].length; j++) {
         sandArray[i][j] = Math.floor((Math.random() * particleTypeCount) + 1);
-        // Avoid checking stone
-        if (sandArray[i][j] !== enumSandType.stone) {
+        // Avoid checking stone or air
+        if ((sandArray[i][j] !== enumSandType.stone) && sandArray[i][j] !== enumSandType.air) {
           futureUpdateBuffer[`${(i)},${j}`] = { x: (i), y: (j) };
         }
       }
