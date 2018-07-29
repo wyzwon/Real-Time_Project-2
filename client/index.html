@@ -23,7 +23,11 @@
 		
 		var socket = {};
 
+		// Flag for draw action underway
 		let drawing = false;
+
+		// Flag for move action underway
+		let moving = false;
 		
 		let pixelSize = 4;
 		let suggestedPixelSize;
@@ -33,7 +37,18 @@
 		let outGoingTilesDict = {};
 		let incomingTilesDict = {};
 		
-		// Note: air === void === eraser
+		let clientScale = 1;
+		let inverseClientScale = 1;
+		
+		// Scaled translate values
+		let clientXTranslate = 0;
+		let clientYTranslate = 0;
+		
+		// Unscaled translate values
+		let unScaledclientXTranslate = 0;
+		let unScaledclientYTranslate = 0;
+		
+		// Note: air = void = eraser
 		const enumSandType = Object.freeze({
 			air: 1,
 			sand: 2,
@@ -47,11 +62,16 @@
 		// Client copy of the scene lengths
 		let sandArrayX = 0;
 		let sandArrayY = 0;
+		
+		// value of change in zoom
+		let zoomValue = 1;
 			
 		// Currently selected particle type
 		let drawColor = parseInt(document.querySelector("#sandType").value);
 		
+		// Last position the mouse was located while drawing
 		let lastPosition = {};
+		let lastMovePosition = {};
 		const boundingClient = canvas.getBoundingClientRect();
 		
 		// Math.sign is unsupported in IE so a custom version must be inserted
@@ -115,7 +135,8 @@
 				}
 			});
 		}
-		
+
+
 		const connectSocket = () => {
 			socket = io.connect();
 			socket.on('connect', () => {
@@ -142,9 +163,10 @@
 				// Set the canvas size to match sandArray
 				canvas.width = (clientSandArray.length * pixelSize);
 				canvas.height = (clientSandArray[0].length * pixelSize);
-				
+
 				fullDraw();
 			});
+
 
 			socket.on('fullUpdate', (data) => {
 				// Import the entire sandArray
@@ -153,7 +175,8 @@
 				// Redraw the updated scene
 				fullDraw();
 			});
-			
+
+
 			// Change the scene to the preset ordered by the server
 			socket.on('changeScene', (data) => {
 				// Clear the incoming Tiles Dictionary
@@ -438,36 +461,61 @@
 		}
 		
 		const fullDraw = () => {
+			ctx.save();
+			ctx.fillStyle = "#aa00ff";
+			ctx.fillRect(0,0,canvas.width,canvas.height);
+			ctx.translate(clientXTranslate,clientYTranslate);
+			ctx.scale(clientScale, clientScale);
+			
 			// fill canvas with the current array values
 			for (let lx = 0; lx < clientSandArray.length; lx++){
 				for (let ly = 0; ly < clientSandArray[0].length; ly++){
-					
+
 					drawColorSwitcher(clientSandArray[lx][ly]);
-					
+
 					ctx.fillRect(lx * pixelSize, ly * pixelSize, pixelSize, pixelSize);
 				}
 			}
+
+			// Draw scene centered circle
+			/*ctx.beginPath();
+			ctx.fillStyle = "#ff0000";
+			ctx.arc((canvas.width / 2),(canvas.height / 2),20,0,2*Math.PI);
+			ctx.fill();
+			ctx.stroke();*/
+			
+			ctx.restore();
+			
+			// Draw view centered circle
+			/*ctx.beginPath();
+			ctx.fillStyle = "#00ffff";
+			ctx.arc((canvas.width / 2),(canvas.height / 2),15,0,2*Math.PI);
+			ctx.fill();
+			ctx.stroke();*/
 		};
-		
+
 		// Redraws only the tiles that need updating
 		const partialDraw = () => {
-			
+			ctx.save();
+			ctx.translate(clientXTranslate,clientYTranslate);
+			ctx.scale(clientScale, clientScale);
+
 			if(Object.keys(incomingTilesDict).length > 0){
 				let changeListKeys = Object.keys(incomingTilesDict);
-	
+
 				// place each change in the local copy
 				for (let i = 0; i < changeListKeys.length; i++){
-	
+
 					const tile = incomingTilesDict[changeListKeys[i]];
 	
 					// Assign the tile to the spot given by the server.
 					clientSandArray[tile.x][tile.y] = tile.type;
-					
+
 					drawColorSwitcher(tile.type);
-					
+
 					ctx.fillRect(tile.x * pixelSize, tile.y * pixelSize, pixelSize, pixelSize);
 				}
-				
+
 				// Force a draw over the entire scene to clear up artifacts
 				// in isolated browser/GPU combinations
 				// note: This is done by drawing pixels of the occupying tile types color
@@ -475,11 +523,28 @@
 				drawColorSwitcher(clientSandArray[0][0]);
 				ctx.fillRect(0, 0, 0.5, 0.5);
 				drawColorSwitcher(clientSandArray[clientSandArray.length - 1][clientSandArray[0].length - 1]);
-				ctx.fillRect(canvas.width-0.5, canvas.height-0.5, canvas.width, canvas.height);
-				
+				ctx.fillRect(canvas.width-0.5, canvas.height-0.5, 0.5, 0.5);
+
 				// Clear the incoming tile buffer
 				incomingTilesDict = {};
 			}
+
+			// Draw scene centered circle
+			/*ctx.beginPath();
+			ctx.fillStyle = "#ff0000";
+			ctx.arc((canvas.width / 2),(canvas.height / 2),20,0,2*Math.PI);
+			ctx.fill();
+			ctx.stroke();*/
+			
+			ctx.restore();
+			
+			// Draw view centered circle
+			/*ctx.beginPath();
+			ctx.fillStyle = "#00ffff";
+			ctx.arc((canvas.width / 2),(canvas.height / 2),15,0,2*Math.PI);
+			ctx.fill();
+			ctx.stroke();*/
+			
 			requestAnimationFrame(partialDraw);
 		};
 		
@@ -492,6 +557,7 @@
 				case "mousedown":
 				case "mouseout":
 				case "mouseover":
+				case "wheel":
 					coordinateX = event.pageX;
 				break;
 				case "touchmove":
@@ -499,13 +565,13 @@
 					coordinateX = event.touches[0].pageX;
 				break;
 				default:
+					console.log("Warning: Unrecognized event type");
 					coordinateX = 200;
 			}
-			
-			// Calculate the corresponding tile
-			return Math.floor(((coordinateX - boundingClient.left) / canvas.width) * clientSandArray.length);
+
+			return coordinateX - boundingClient.left;
 		}
-		
+
 		// Returns the Y position of the mouse/touch at time of request
 		const getPositionY = (event) => {
 			let coordinateY;
@@ -515,6 +581,7 @@
 				case "mousedown":
 				case "mouseout":
 				case "mouseover":
+				case "wheel":
 					coordinateY = event.pageY;
 				break;
 				case "touchmove":
@@ -522,11 +589,21 @@
 					coordinateY = event.touches[0].pageY;
 				break;
 				default:
+					console.log("Warning: Unrecognized event type");
 					coordinateY = 200;
 			}
-			
-			// Calculate the corresponding tile
-			return Math.floor(((coordinateY - boundingClient.top) / canvas.height) * clientSandArray[0].length);
+
+			return coordinateY - boundingClient.top;
+		}
+		
+		// Translate the x coordinate to tile coordinates
+		const getTilePositionX = (event) => {
+			return Math.floor((getPositionX(event) / canvas.width) * sandArrayX);
+		}
+		
+		// Translate the y coordinate to tile coordinates
+		const getTilePositionY = (event) => {
+			return Math.floor((getPositionY(event) / canvas.height) * sandArrayY);
 		}
 		
 		const moveDrawing = (event) => {
@@ -534,8 +611,10 @@
 				event.preventDefault();
 
 				// Calculate the mouse position
-				let positionX = getPositionX(event);
-                let positionY = getPositionY(event);
+				let positionX = getTilePositionX(event);
+                let positionY = getTilePositionY(event);
+				positionX = Math.floor((positionX * inverseClientScale) - (clientXTranslate / pixelSize) / clientScale);
+				positionY = Math.floor((positionY * inverseClientScale) - (clientYTranslate / pixelSize) / clientScale);
 
 				// draw a line between the mouse points
 				lineCalculator(lastPosition.x, lastPosition.y, positionX, positionY);
@@ -543,42 +622,77 @@
 				// Set this point as the starting point for the next line segment
 				lastPosition = {x: positionX, y: positionY};
 			}
+			else if(moving){
+				// Calculate the mouse position
+				let positionX = (getPositionX(event) * inverseClientScale) - (clientXTranslate / pixelSize) / clientScale;
+				let positionY = (getPositionY(event) * inverseClientScale) - (clientYTranslate / pixelSize) / clientScale;
+
+				//console.log(lastMovePosition);
+				//console.log("position: " + positionX + "," + positionY);
+				//console.log("ammountMoved: " + (positionX - lastMovePosition.x) + "," + (positionY - lastMovePosition.y));
+
+				// Add the amount moved to the translation value
+				unScaledclientXTranslate += positionX - lastMovePosition.x;
+				unScaledclientYTranslate += positionY - lastMovePosition.y;
+				clientXTranslate = (unScaledclientXTranslate * clientScale);
+				clientYTranslate = (unScaledclientYTranslate * clientScale);
+				fullDraw();
+
+				// Set this point as the starting point for the next line segment
+				lastMovePosition = {x: positionX, y: positionY};
+			}
 		};
 		
 		const activateDrawing = (event) => {
+
+			// Calculate the mouse position
+			let positionX = getTilePositionX(event);
+            let positionY = getTilePositionY(event);
+
+			positionX = Math.floor((positionX * inverseClientScale) - (clientXTranslate / pixelSize) / clientScale);
+			positionY = Math.floor((positionY * inverseClientScale) - (clientYTranslate / pixelSize) / clientScale);
+
 			// React to left click
             if(event.button === 0){
 			  event.preventDefault();
 			  drawing = true;
-			  
-			  // Calculate the mouse position
-			  let positionX = getPositionX(event);
-              let positionY = getPositionY(event);
-			  
+
 			  // Place the current pixel in the buffer
 			  outGoingTilesDict[`${positionX},${positionY}`] = {x: positionX, y: positionY, type: drawColor};
 
 			  // Set this point as the starting point for the line.
 			  lastPosition = {x: positionX, y: positionY};
 			}
+			// React to middle button click
 			if(event.button === 1){
-				// Calculate the mouse position
-				let positionX = getPositionX(event);
-                let positionY = getPositionY(event);
-				
 				// Set drawColor to the sand value of the currently selected tile
 				drawColor = clientSandArray[positionX][positionY];
 				// Update the selector value to reflect the current sand type
 				document.querySelector("#sandType").value = drawColor;
+			}
+			// React to right button click
+			if(event.button === 2){
+				moving = true;
+
+				let positionX = getPositionX(event);
+				let positionY = getPositionY(event);
+
+				positionX = (positionX * inverseClientScale) - (clientXTranslate / pixelSize) / clientScale;
+				positionY = (positionY * inverseClientScale) - (clientYTranslate / pixelSize) / clientScale;
+				lastMovePosition = {x: positionX, y: positionY};
+				//lastMovePosition = {x: null, y: null};
 			}
 		};
 		
 		const activateTouchDrawing = (event) => {
 			event.preventDefault();
 			
-			let positionX = getPositionX(event);
-			let positionY = getPositionY(event);
-			
+			let positionX = getTilePositionX(event);
+			let positionY = getTilePositionY(event);
+
+			positionX = Math.floor((positionX * inverseClientScale) - (clientXTranslate / pixelSize) / clientScale);
+			positionY = Math.floor((positionY * inverseClientScale) - (clientYTranslate / pixelSize) / clientScale);
+
 			// Place the current pixel in the buffer
 			outGoingTilesDict[`${positionX},${positionY}`] = {x: positionX, y: positionY, type: drawColor};
 			
@@ -589,9 +703,12 @@
 		const moveTouchDrawing = (event) => {
 			event.preventDefault();
 			
-			let positionX = getPositionX(event);
-			let positionY = getPositionY(event);
-			
+			let positionX = getTilePositionX(event);
+			let positionY = getTilePositionY(event);
+
+			positionX = Math.floor((positionX * inverseClientScale) - (clientXTranslate / pixelSize) / clientScale);
+			positionY = Math.floor((positionY * inverseClientScale) - (clientYTranslate / pixelSize) / clientScale);
+
 			// draw a line between the mouse points
 			lineCalculator(lastPosition.x, lastPosition.y, positionX, positionY);
 				
@@ -602,15 +719,19 @@
 		const deactivateDrawing = (event) => {
 			event.preventDefault();
 			drawing = false;
+			moving = false;
 		};
 		
 		const edgeInDrawing = (event) => {
 			if(drawing){
 				event.preventDefault();
 				// Calculate the mouse position
-				let positionX = getPositionX(event);
-				let positionY = getPositionY(event);
+				let positionX = getTilePositionX(event);
+				let positionY = getTilePositionY(event);
 				
+				positionX = Math.floor((positionX * inverseClientScale) - (clientXTranslate / pixelSize) / clientScale);
+				positionY = Math.floor((positionY * inverseClientScale) - (clientYTranslate / pixelSize) / clientScale);
+			
 				// Set this point as the starting point for the line.
 				lastPosition = {x: positionX, y: positionY};
 			}
@@ -620,8 +741,11 @@
 			if(drawing){
 				event.preventDefault();
 				// Calculate the mouse position
-				let positionX = getPositionX(event);
-				let positionY = getPositionY(event);
+				let positionX = getTilePositionX(event);
+				let positionY = getTilePositionY(event);
+				
+				positionX = Math.floor((positionX * inverseClientScale) - (clientXTranslate / pixelSize) / clientScale);
+				positionY = Math.floor((positionY * inverseClientScale) - (clientYTranslate / pixelSize) / clientScale);
 			
 				// draw a line between the mouse points
 				lineCalculator(lastPosition.x, lastPosition.y, positionX, positionY);
@@ -640,6 +764,66 @@
 			socket.emit('fullUpdateRequest', {});
 		};
 		
+		// React to scrolling action to scale the scene
+		const wheel = (event) => {
+			// Calculate the mouse position
+			let positionX = getPositionX(event);
+            let positionY = getPositionY(event);
+			
+			// Translations for the new center must be done in the context of the old scale window
+			// so save the previous scale for later use
+			let previousScale = clientScale;
+
+			if(event.deltaY < 0){
+				
+				// Update the scale
+				clientScale += zoomValue;
+				//clientScale = clientScale*2;
+				
+				// Update the inverse for the new scale
+				inverseClientScale = (1 / clientScale);
+
+				// Use this copy if a zoom cap is implemented
+				//unScaledclientXTranslate -= (((canvas.width / 2) * inverseClientScale) / (previousScale / (clientScale - previousScale)));
+				//unScaledclientYTranslate -= (((canvas.height / 2) * inverseClientScale) / (previousScale / (clientScale - previousScale)));
+				
+				// Zoom from center
+				//unScaledclientXTranslate -= (((canvas.width / 2) * inverseClientScale) / (previousScale / zoomValue));
+				//unScaledclientYTranslate -= (((canvas.height / 2) * inverseClientScale) / (previousScale / zoomValue));
+				
+				unScaledclientXTranslate -= ((positionX * inverseClientScale) / (previousScale / zoomValue));
+				unScaledclientYTranslate -= ((positionY * inverseClientScale) / (previousScale / zoomValue));
+			}
+			else{
+				
+				// Update the scale
+				clientScale -= zoomValue;
+				
+				// Update the inverse for the new scale
+				inverseClientScale = (1 / clientScale);
+				
+				if (clientScale < 1){
+					clientScale = 1;
+					inverseClientScale = 1;
+				}
+				
+				if(previousScale !== clientScale){
+					// Zoom out from mouse position
+					//unScaledclientXTranslate += (((canvas.width - positionX) * inverseClientScale) / (previousScale / (previousScale - clientScale)));
+					//unScaledclientYTranslate += (((canvas.height - positionY) * inverseClientScale) / (previousScale / (previousScale - clientScale)));
+					
+					// Zoom out from center of current view
+					unScaledclientXTranslate += (((canvas.width / 2) * inverseClientScale) / (previousScale / (previousScale - clientScale)));
+					unScaledclientYTranslate += (((canvas.height / 2) * inverseClientScale) / (previousScale / (previousScale - clientScale)));
+				}
+			}
+			
+			clientXTranslate = (unScaledclientXTranslate * clientScale);
+			clientYTranslate = (unScaledclientYTranslate * clientScale);
+
+			fullDraw();
+		};
+		
 		const init = () => {
 			// Prevent default right click behavior
 			canvas.oncontextmenu = function() {
@@ -650,7 +834,7 @@
 			if (!event) {
 				var event = window.Event;
 			};
-			
+
 			connectSocket();
 			canvas.onmousemove = moveDrawing.bind(event);
 			canvas.ontouchmove = moveTouchDrawing.bind(event);
@@ -661,6 +845,7 @@
 			canvas.onmouseout = edgeOutDrawing.bind(event);
 			canvas.onmouseover = edgeInDrawing.bind(event);
 			window.onfocus = focusRedraw.bind();
+			canvas.onwheel = wheel.bind(event);
 			
 			document.querySelector("#sandType").onchange = function(e){
 

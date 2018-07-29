@@ -10,7 +10,7 @@ const suggestedPixelSize = 4;// 2;
 
 const enumActType = Object.freeze({ stayActive: 1, changeTile: 2 });
 
-// Note: air === void === eraser
+// Note: air = void = eraser
 // Warning: must be added as consecutive integers above 0
 const enumSandType = Object.freeze({
   air: 1,

@@ -6,3 +6,8 @@ body{
 	border:1px solid #555555;
 	touch-action: none;
 }
+
+progress{
+
+	width:4em;
+}
