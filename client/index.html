@@ -344,10 +344,8 @@
 					if(x1 > x0){
 
 						for(let x = x0; x <= x1; x++){
-							// Add the tile to the list to be sent to the server,
-							if(inBounds(x,y)){
-								outGoingTilesDict[`${x},${y}`] = {x: x, y: y, type: drawColor};
-							}
+							// Place the current pixel in the buffer
+							tileProccess(x, y, drawColor);
 							
 							error = (error + deltaError);
 							while(error >= 0.5){
@@ -360,10 +358,8 @@
 					else{
 						
 						for(let x = x0; x >= x1; x--){
-							// Add the tile to the list to be sent to the server,
-							if(inBounds(x,y)){
-								outGoingTilesDict[`${x},${y}`] = {x: x, y: y, type: drawColor};
-							}
+							// Place the current pixel in the buffer
+							tileProccess(x, y, drawColor);
 							
 							error = (error + deltaError);
 							while(error >= 0.5){
@@ -384,10 +380,8 @@
 					if(y1 > y0){
 
 						for(let y = y0; y <= y1; y++){
-							// Add the tile to the list to be sent to the server,
-							if(inBounds(x,y)){
-								outGoingTilesDict[`${x},${y}`] = {x: x, y: y, type: drawColor};
-							}
+							// Place the current pixel in the buffer
+							tileProccess(x, y, drawColor);
 							
 							error = (error + deltaError);
 							while(error >= 0.5){
@@ -400,10 +394,8 @@
 					else{
 
 						for(let y = y0; y >= y1; y--){
-							// Add the tile to the list to be sent to the server,
-							if(inBounds(x,y)){
-								outGoingTilesDict[`${x},${y}`] = {x: x, y: y, type: drawColor};
-							}
+							// Place the current pixel in the buffer
+							tileProccess(x, y, drawColor);
 							
 							error = (error + deltaError);
 							while(error >= 0.5){
@@ -595,17 +587,20 @@
 
 			return coordinateY - boundingClient.top;
 		}
-		
-		// Translate the x coordinate to tile coordinates
+
+
+		// Translate the x coordinate to tile coordinates adjusted to the current transform
 		const getTilePositionX = (event) => {
-			return Math.floor((getPositionX(event) / canvas.width) * sandArrayX);
+			return Math.floor((((getPositionX(event) / canvas.width) * sandArrayX) * inverseClientScale) - (clientXTranslate / pixelSize) / clientScale);
 		}
-		
-		// Translate the y coordinate to tile coordinates
+
+
+		// Translate the y coordinate to tile coordinates adjusted to the current transform
 		const getTilePositionY = (event) => {
-			return Math.floor((getPositionY(event) / canvas.height) * sandArrayY);
+			return Math.floor((((getPositionY(event) / canvas.height) * sandArrayY) * inverseClientScale) - (clientYTranslate / pixelSize) / clientScale);
 		}
-		
+
+
 		const moveDrawing = (event) => {
 			if(drawing){
 				event.preventDefault();
@@ -613,8 +608,6 @@
 				// Calculate the mouse position
 				let positionX = getTilePositionX(event);
                 let positionY = getTilePositionY(event);
-				positionX = Math.floor((positionX * inverseClientScale) - (clientXTranslate / pixelSize) / clientScale);
-				positionY = Math.floor((positionY * inverseClientScale) - (clientYTranslate / pixelSize) / clientScale);
 
 				// draw a line between the mouse points
 				lineCalculator(lastPosition.x, lastPosition.y, positionX, positionY);
@@ -642,15 +635,29 @@
 				lastMovePosition = {x: positionX, y: positionY};
 			}
 		};
-		
+
+
+		// Check that the tile should be sent
+		const tileProccess = (x, y, tileType) => {
+			// Add the tile to the list to be sent to the server,
+			if(inBounds(x,y)){
+				// Note for future development, place code here to avoid sending a tile if that tile already
+				// exists in this spot but only if there arent tiles around that are likey to replace it.
+				// without that extra step, it becomes noticably harder to draw over moving tiles.
+				// Proposal: make a continuously updated array that lets the tiles check if they are bordered
+				// by any tiles that are not the same as them.
+				
+				// Place the current pixel in the buffer
+				outGoingTilesDict[`${x},${y}`] = {x: x, y: y, type: tileType};
+			}
+		}
+
+
 		const activateDrawing = (event) => {
 
 			// Calculate the mouse position
 			let positionX = getTilePositionX(event);
             let positionY = getTilePositionY(event);
-
-			positionX = Math.floor((positionX * inverseClientScale) - (clientXTranslate / pixelSize) / clientScale);
-			positionY = Math.floor((positionY * inverseClientScale) - (clientYTranslate / pixelSize) / clientScale);
 
 			// React to left click
             if(event.button === 0){
@@ -658,13 +665,14 @@
 			  drawing = true;
 
 			  // Place the current pixel in the buffer
-			  outGoingTilesDict[`${positionX},${positionY}`] = {x: positionX, y: positionY, type: drawColor};
+			  tileProccess(positionX, positionY, drawColor);
 
 			  // Set this point as the starting point for the line.
 			  lastPosition = {x: positionX, y: positionY};
 			}
 			// React to middle button click
 			if(event.button === 1){
+				event.preventDefault();
 				// Set drawColor to the sand value of the currently selected tile
 				drawColor = clientSandArray[positionX][positionY];
 				// Update the selector value to reflect the current sand type
@@ -672,6 +680,7 @@
 			}
 			// React to right button click
 			if(event.button === 2){
+				event.preventDefault();
 				moving = true;
 
 				let positionX = getPositionX(event);
@@ -690,9 +699,6 @@
 			let positionX = getTilePositionX(event);
 			let positionY = getTilePositionY(event);
 
-			positionX = Math.floor((positionX * inverseClientScale) - (clientXTranslate / pixelSize) / clientScale);
-			positionY = Math.floor((positionY * inverseClientScale) - (clientYTranslate / pixelSize) / clientScale);
-
 			// Place the current pixel in the buffer
 			outGoingTilesDict[`${positionX},${positionY}`] = {x: positionX, y: positionY, type: drawColor};
 			
@@ -705,9 +711,6 @@
 			
 			let positionX = getTilePositionX(event);
 			let positionY = getTilePositionY(event);
-
-			positionX = Math.floor((positionX * inverseClientScale) - (clientXTranslate / pixelSize) / clientScale);
-			positionY = Math.floor((positionY * inverseClientScale) - (clientYTranslate / pixelSize) / clientScale);
 
 			// draw a line between the mouse points
 			lineCalculator(lastPosition.x, lastPosition.y, positionX, positionY);
@@ -728,9 +731,6 @@
 				// Calculate the mouse position
 				let positionX = getTilePositionX(event);
 				let positionY = getTilePositionY(event);
-				
-				positionX = Math.floor((positionX * inverseClientScale) - (clientXTranslate / pixelSize) / clientScale);
-				positionY = Math.floor((positionY * inverseClientScale) - (clientYTranslate / pixelSize) / clientScale);
 			
 				// Set this point as the starting point for the line.
 				lastPosition = {x: positionX, y: positionY};
@@ -743,9 +743,6 @@
 				// Calculate the mouse position
 				let positionX = getTilePositionX(event);
 				let positionY = getTilePositionY(event);
-				
-				positionX = Math.floor((positionX * inverseClientScale) - (clientXTranslate / pixelSize) / clientScale);
-				positionY = Math.floor((positionY * inverseClientScale) - (clientYTranslate / pixelSize) / clientScale);
 			
 				// draw a line between the mouse points
 				lineCalculator(lastPosition.x, lastPosition.y, positionX, positionY);
@@ -766,6 +763,8 @@
 		
 		// React to scrolling action to scale the scene
 		const wheel = (event) => {
+			event.preventDefault();
+			
 			// Calculate the mouse position
 			let positionX = getPositionX(event);
             let positionY = getPositionY(event);
