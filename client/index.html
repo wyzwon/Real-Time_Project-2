@@ -642,6 +642,22 @@
 		const translateProccessX = (xShift) => {
 			// Update the unscaled translate
 			unScaledclientXTranslate += xShift;
+
+			// Prevent movement off the left edge
+			if(unScaledclientXTranslate > 0){
+				unScaledclientXTranslate = 0;
+			}
+			// Dont bother checking the other wall if it's up against this one
+			else{
+				// Calculate the furthest the scene can be translated left (how far right the viewport can appear to move)
+				let furthestAllowedValue = -(canvas.width - (canvas.width / clientScale));
+
+				// Prevent movement off the right edge
+				if(unScaledclientXTranslate < furthestAllowedValue){
+					unScaledclientXTranslate = furthestAllowedValue;
+				}
+			}
+
 			// Update the scaled translate
 			clientXTranslate = (unScaledclientXTranslate * clientScale);
 		}
@@ -651,6 +667,22 @@
 		const translateProccessY = (yShift) => {
 			// Update the unscaled translate
 			unScaledclientYTranslate += yShift;
+
+			// Prevent movement off the top edge
+			if(unScaledclientYTranslate > 0){
+				unScaledclientYTranslate = 0;
+			}
+			// Dont bother checking the other wall if it's up against this one
+			else{
+				// Calculate the furthest the scene can be translated up (how far down the viewport can appear to move)
+				let furthestAllowedValue = -(canvas.height - (canvas.height / clientScale));
+
+				// Prevent movement off the bottom edge
+				if(unScaledclientYTranslate < furthestAllowedValue){
+					unScaledclientYTranslate = furthestAllowedValue;
+				}
+			}
+
 			// Update the scaled translate
 			clientYTranslate = (unScaledclientYTranslate * clientScale);
 		}
