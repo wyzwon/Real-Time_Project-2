@@ -821,8 +821,8 @@
 				
 				if(previousScale !== clientScale){
 					// Zoom out from mouse position
-					//unScaledclientXTranslate += (((canvas.width - positionX) * inverseClientScale) / (previousScale / (previousScale - clientScale)));
-					//unScaledclientYTranslate += (((canvas.height - positionY) * inverseClientScale) / (previousScale / (previousScale - clientScale)));
+					//translateProccessX(((canvas.width - positionX) * inverseClientScale) / (previousScale / (previousScale - clientScale)));
+					//translateProccessY(((canvas.height - positionY) * inverseClientScale) / (previousScale / (previousScale - clientScale)));
 					
 					// Zoom out from center of current view
 					translateProccessX(((canvas.width / 2) * inverseClientScale) / (previousScale / (previousScale - clientScale)));
