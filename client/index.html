@@ -75,6 +75,7 @@
 		// Last position the mouse was located while drawing
 		let lastPosition = {x: null, y: null};
 		let lastMovePosition = {};
+		let lastIdlePosition = {x: null, y: null};
 		const boundingClient = canvas.getBoundingClientRect();
 		
 		// Math.sign is unsupported in IE so a custom version must be inserted
@@ -705,16 +706,23 @@
 
 
 		// Draw particles at the last recorded position so static cursors still emit particles
-		// Note: lastPosition only records one location at a time so there is no way to know if
-		// the cursor moved that round, the effect is redundant writing to the scene, this
+		// Note: At slow draw speeds,the positions wont change fast enough to detect movement
+		// between checks, the effect is redundant writing to the scene, this
 		// has minimal overhead for now and does not change functionality.
 		const drawIdle = () => {
 			// If the drawing action is still taking place
 			if(drawing || touchDrawing){
-				// If a last position Exists
-				if((lastPosition.x !== null) && (lastPosition.y !== null)){
-					tileProccess(lastPosition.x, lastPosition.y, drawColor)
+				// If a lastPosition and lastIdlePosition Exists
+				if((lastPosition.x !== null) && (lastPosition.y !== null) && (lastIdlePosition.x !== null) && (lastIdlePosition.y !== null)){
+					// If the cursor hasn't moved since the last idle draw
+					if((lastIdlePosition.x === lastPosition.x) && (lastIdlePosition.y === lastPosition.y)){
+						tileProccess(lastPosition.x, lastPosition.y, drawColor)
+					}
 				}
+
+				// Remember this as the last point drawn from
+				lastIdlePosition = {x: lastPosition.x, y: lastPosition.y};
+
 				// Since drawing is still active, renew the cycle.
 				requestAnimationFrame(drawIdle);
 			}
