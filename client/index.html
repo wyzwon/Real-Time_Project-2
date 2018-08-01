@@ -619,22 +619,35 @@
 				// Calculate the mouse position
 				let positionX = (getPositionX(event) * inverseClientScale) - (clientXTranslate / pixelSize) / clientScale;
 				let positionY = (getPositionY(event) * inverseClientScale) - (clientYTranslate / pixelSize) / clientScale;
-
-				//console.log(lastMovePosition);
-				//console.log("position: " + positionX + "," + positionY);
-				//console.log("ammountMoved: " + (positionX - lastMovePosition.x) + "," + (positionY - lastMovePosition.y));
-
+				
 				// Add the amount moved to the translation value
-				unScaledclientXTranslate += positionX - lastMovePosition.x;
-				unScaledclientYTranslate += positionY - lastMovePosition.y;
-				clientXTranslate = (unScaledclientXTranslate * clientScale);
-				clientYTranslate = (unScaledclientYTranslate * clientScale);
+				translateProccessX(positionX - lastMovePosition.x);
+				translateProccessY(positionY - lastMovePosition.y);
+				
 				fullDraw();
 
 				// Set this point as the starting point for the next line segment
 				lastMovePosition = {x: positionX, y: positionY};
 			}
 		};
+
+
+		// Set X translation
+		const translateProccessX = (xShift) => {
+			// Update the unscaled translate
+			unScaledclientXTranslate += xShift;
+			// Update the scaled translate
+			clientXTranslate = (unScaledclientXTranslate * clientScale);
+		}
+
+
+		// Set Y translation
+		const translateProccessY = (yShift) => {
+			// Update the unscaled translate
+			unScaledclientYTranslate += yShift;
+			// Update the scaled translate
+			clientYTranslate = (unScaledclientYTranslate * clientScale);
+		}
 
 
 		// Check that the tile should be sent
@@ -783,15 +796,15 @@
 				inverseClientScale = (1 / clientScale);
 
 				// Use this copy if a zoom cap is implemented
-				//unScaledclientXTranslate -= (((canvas.width / 2) * inverseClientScale) / (previousScale / (clientScale - previousScale)));
-				//unScaledclientYTranslate -= (((canvas.height / 2) * inverseClientScale) / (previousScale / (clientScale - previousScale)));
+				//translateProccessX(-(((canvas.width / 2) * inverseClientScale) / (previousScale / (clientScale - previousScale))));
+				//translateProccessY(-(((canvas.height / 2) * inverseClientScale) / (previousScale / (clientScale - previousScale))));
 				
 				// Zoom from center
-				//unScaledclientXTranslate -= (((canvas.width / 2) * inverseClientScale) / (previousScale / zoomValue));
-				//unScaledclientYTranslate -= (((canvas.height / 2) * inverseClientScale) / (previousScale / zoomValue));
+				//translateProccessX(-(((canvas.width / 2) * inverseClientScale) / (previousScale / zoomValue)));
+				//translateProccessY(-(((canvas.height / 2) * inverseClientScale) / (previousScale / zoomValue)));
 				
-				unScaledclientXTranslate -= ((positionX * inverseClientScale) / (previousScale / zoomValue));
-				unScaledclientYTranslate -= ((positionY * inverseClientScale) / (previousScale / zoomValue));
+				translateProccessX(-((positionX * inverseClientScale) / (previousScale / zoomValue)));
+				translateProccessY(-((positionY * inverseClientScale) / (previousScale / zoomValue)));
 			}
 			else{
 				
@@ -812,14 +825,15 @@
 					//unScaledclientYTranslate += (((canvas.height - positionY) * inverseClientScale) / (previousScale / (previousScale - clientScale)));
 					
 					// Zoom out from center of current view
-					unScaledclientXTranslate += (((canvas.width / 2) * inverseClientScale) / (previousScale / (previousScale - clientScale)));
-					unScaledclientYTranslate += (((canvas.height / 2) * inverseClientScale) / (previousScale / (previousScale - clientScale)));
+					//unScaledclientXTranslate += (((canvas.width / 2) * inverseClientScale) / (previousScale / (previousScale - clientScale)));
+					//unScaledclientYTranslate += (((canvas.height / 2) * inverseClientScale) / (previousScale / (previousScale - clientScale)));
+					
+					translateProccessX(((canvas.width / 2) * inverseClientScale) / (previousScale / (previousScale - clientScale)));
+					translateProccessY(((canvas.height / 2) * inverseClientScale) / (previousScale / (previousScale - clientScale)));
 				}
 			}
-			
-			clientXTranslate = (unScaledclientXTranslate * clientScale);
-			clientYTranslate = (unScaledclientYTranslate * clientScale);
 
+			// Redraw the scene with the new transform
 			fullDraw();
 		};
 		
