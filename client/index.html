@@ -25,6 +25,9 @@
 
 		// Flag for draw action underway
 		let drawing = false;
+		
+		// Flag for touch based drawing underway
+		let touchDrawing = false;
 
 		// Flag for move action underway
 		let moving = false;
@@ -70,7 +73,7 @@
 		let drawColor = parseInt(document.querySelector("#sandType").value);
 		
 		// Last position the mouse was located while drawing
-		let lastPosition = {};
+		let lastPosition = {x: null, y: null};
 		let lastMovePosition = {};
 		const boundingClient = canvas.getBoundingClientRect();
 		
@@ -327,80 +330,83 @@
 		
 		// calculate a line between two mouse points and add them to the buffer with the current draw color
 		const lineCalculator = (x0, y0, x1, y1) => {
-			let deltaX = x1 - x0;
-			let deltaY = y1 - y0;
-			
-			// filter out zero vectors
-			if(deltaX || deltaY){
-				
-				// quadrants 1 and 3
-				if (Math.abs(deltaX) > Math.abs(deltaY)){
-				
-					let deltaError = Math.abs(deltaY / deltaX);
-					let error = 0;
-					let y = y0;
-					
-					// quadrant 1
-					if(x1 > x0){
+			// if none of the values are null
+			if((x0 !== null) && (y0 !== null) && (x1 !== null) && (y1 !== null)){
+				let deltaX = x1 - x0;
+				let deltaY = y1 - y0;
 
-						for(let x = x0; x <= x1; x++){
-							// Place the current pixel in the buffer
-							tileProccess(x, y, drawColor);
-							
-							error = (error + deltaError);
-							while(error >= 0.5){
-								y = y + Math.sign(deltaY) * 1
-								error = error - 1;
-							}
-						}
-					}
-					// quadrant 3
-					else{
-						
-						for(let x = x0; x >= x1; x--){
-							// Place the current pixel in the buffer
-							tileProccess(x, y, drawColor);
-							
-							error = (error + deltaError);
-							while(error >= 0.5){
-								y = y + Math.sign(deltaY) * 1
-								error = error - 1;
-							}
-						}
-					}
-				}
-				// quadrants 2 and 4
-				else{
-				
-					let deltaError = Math.abs(deltaX / deltaY);
-					let error = 0;
-					let x = x0;
-					
-					// quadrant 4
-					if(y1 > y0){
+				// filter out zero vectors
+				if(deltaX || deltaY){
 
-						for(let y = y0; y <= y1; y++){
-							// Place the current pixel in the buffer
-							tileProccess(x, y, drawColor);
-							
-							error = (error + deltaError);
-							while(error >= 0.5){
-								x = x + Math.sign(deltaX) * 1
-								error = error - 1;
+					// quadrants 1 and 3
+					if (Math.abs(deltaX) > Math.abs(deltaY)){
+
+						let deltaError = Math.abs(deltaY / deltaX);
+						let error = 0;
+						let y = y0;
+
+						// quadrant 1
+						if(x1 > x0){
+
+							for(let x = x0; x <= x1; x++){
+								// Place the current pixel in the buffer
+								tileProccess(x, y, drawColor);
+
+								error = (error + deltaError);
+								while(error >= 0.5){
+									y = y + Math.sign(deltaY) * 1
+									error = error - 1;
+								}
+							}
+						}
+						// quadrant 3
+						else{
+
+							for(let x = x0; x >= x1; x--){
+								// Place the current pixel in the buffer
+								tileProccess(x, y, drawColor);
+
+								error = (error + deltaError);
+								while(error >= 0.5){
+									y = y + Math.sign(deltaY) * 1
+									error = error - 1;
+								}
 							}
 						}
 					}
-					// quadrant 2
+					// quadrants 2 and 4
 					else{
 
-						for(let y = y0; y >= y1; y--){
-							// Place the current pixel in the buffer
-							tileProccess(x, y, drawColor);
-							
-							error = (error + deltaError);
-							while(error >= 0.5){
-								x = x + Math.sign(deltaX) * 1
-								error = error - 1;
+						let deltaError = Math.abs(deltaX / deltaY);
+						let error = 0;
+						let x = x0;
+
+						// quadrant 4
+						if(y1 > y0){
+
+							for(let y = y0; y <= y1; y++){
+								// Place the current pixel in the buffer
+								tileProccess(x, y, drawColor);
+
+								error = (error + deltaError);
+								while(error >= 0.5){
+									x = x + Math.sign(deltaX) * 1
+									error = error - 1;
+								}
+							}
+						}
+						// quadrant 2
+						else{
+
+							for(let y = y0; y >= y1; y--){
+								// Place the current pixel in the buffer
+								tileProccess(x, y, drawColor);
+
+								error = (error + deltaError);
+								while(error >= 0.5){
+									x = x + Math.sign(deltaX) * 1
+									error = error - 1;
+								}
 							}
 						}
 					}
@@ -666,6 +672,23 @@
 		}
 
 
+		// Draw particles at the last recorded position so static cursors still emit particles
+		// Note: lastPosition only records one location at a time so there is no way to know if
+		// the cursor moved that round, the effect is redundant writing to the scene, this
+		// has minimal overhead for now and does not change functionality.
+		const drawIdle = () => {
+			// If the drawing action is still taking place
+			if(drawing || touchDrawing){
+				// If a last position Exists
+				if((lastPosition.x !== null) && (lastPosition.y !== null)){
+					tileProccess(lastPosition.x, lastPosition.y, drawColor)
+				}
+				// Since drawing is still active, renew the cycle.
+				requestAnimationFrame(drawIdle);
+			}
+		}
+
+
 		const activateDrawing = (event) => {
 
 			// Calculate the mouse position
@@ -676,6 +699,9 @@
             if(event.button === 0){
 			  event.preventDefault();
 			  drawing = true;
+
+			  // Jump start drawIdle
+			  drawIdle();
 
 			  // Place the current pixel in the buffer
 			  tileProccess(positionX, positionY, drawColor);
@@ -712,8 +738,13 @@
 			let positionX = getTilePositionX(event);
 			let positionY = getTilePositionY(event);
 
+			touchDrawing = true;
+
+			// Jump start drawIdle
+			drawIdle();
+			
 			// Place the current pixel in the buffer
-			outGoingTilesDict[`${positionX},${positionY}`] = {x: positionX, y: positionY, type: drawColor};
+			tileProccess(positionX, positionY, drawColor);
 			
 			// Set this point as the starting point for the line.
 			lastPosition = {x: positionX, y: positionY};
@@ -736,6 +767,10 @@
 			event.preventDefault();
 			drawing = false;
 			moving = false;
+			touchDrawing = false;
+
+			// Clear the lastPosition to signal the start for future drawing activations
+			lastPosition = {x: null, y: null};
 		};
 		
 		const edgeInDrawing = (event) => {
@@ -851,7 +886,7 @@
 			canvas.onmousedown = activateDrawing.bind(event);
 			window.onmouseup = deactivateDrawing.bind(event);
 			canvas.ontouchstart = activateTouchDrawing.bind(event);
-			//canvas.ontouchend = deactivateDrawing.bind(event);
+			canvas.ontouchend = deactivateDrawing.bind(event);
 			canvas.onmouseout = edgeOutDrawing.bind(event);
 			canvas.onmouseover = edgeInDrawing.bind(event);
 			window.onfocus = focusRedraw.bind();
