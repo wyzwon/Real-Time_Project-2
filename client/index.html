@@ -72,10 +72,15 @@
 		// Currently selected particle type
 		let drawColor = parseInt(document.querySelector("#sandType").value);
 		
-		// Last position the mouse was located while drawing
+		// Last tile in which the mouse was located while drawing
 		let lastPosition = {x: null, y: null};
+		// Last position the mouse was located
 		let lastMovePosition = {};
+		// Last tile in which the mouse was seen hovering
 		let lastIdlePosition = {x: null, y: null};
+		// Last positions of fingers in pinch action
+		let lastPinchData = {centerPt: null, magnitude: null};
+		
 		const boundingClient = canvas.getBoundingClientRect();
 		
 		// Math.sign is unsupported in IE so a custom version must be inserted
@@ -687,6 +692,21 @@
 			// Update the scaled translate
 			clientYTranslate = (unScaledclientYTranslate * clientScale);
 		}
+		
+		
+		// Add value to scale, prevent cap overflow, and update the inverseClientScale
+		const scaleProccess = (scale) => {
+			clientScale += scale;
+			
+			// cap the wide zoom at the scene size
+			if (clientScale < 1){
+				clientScale = 1;
+				inverseClientScale = 1;
+			}
+			
+			// Update the inverseClientScale
+			inverseClientScale = (1 / clientScale);
+		}
 
 
 		// Check that the tile should be sent
@@ -793,14 +813,55 @@
 		const moveTouchDrawing = (event) => {
 			event.preventDefault();
 			
-			let positionX = getTilePositionX(event);
-			let positionY = getTilePositionY(event);
+			switch (event.touches.length){
+				case 1:
+					let positionX = getTilePositionX(event);
+					let positionY = getTilePositionY(event);
+		
+					// draw a line between the mouse points
+					lineCalculator(lastPosition.x, lastPosition.y, positionX, positionY);
+						
+					// Set this point as the starting point for the line.
+					lastPosition = {x: positionX, y: positionY};
+				break;
+				case 2:
+					// Deactivate touchDrawing to stop idleDraw
+					touchDrawing = false;
 
-			// draw a line between the mouse points
-			lineCalculator(lastPosition.x, lastPosition.y, positionX, positionY);
-				
-			// Set this point as the starting point for the line.
-			lastPosition = {x: positionX, y: positionY};
+					// Calculate the line between the two fingers
+					let vector = {x: ((event.touches[1].pageX - boundingClient.left) - (event.touches[0].pageX - boundingClient.left)),y: ((event.touches[1].pageY - boundingClient.top) - (event.touches[0].pageY - boundingClient.top))};
+
+					// Calculate the distance between the fingers
+					vector.magnitude = Math.sqrt(Math.abs((vector.x)^2)+Math.abs((vector.y)^2));
+
+					// Calculate the global coordinates of the point in the center of the line between the two fingers
+					let centerPt = {x:null, y: null};
+					centerPt.x = (event.touches[0].pageX + (vector.x / 2));
+					centerPt.y = (event.touches[0].pageY + (vector.y / 2));
+					
+					// If this code has been passed through once before this event and lastPinchData is not null
+					if(lastPinchData.magnitude !== null){
+						
+						let previousScale = clientScale;
+						
+						// Scale the scene in ratio to the pinch action
+						scaleProccess(vector.magnitude - lastPinchData.magnitude);
+						
+						// Claculate the differences in center point positions and move that much weighted to the zoom scale
+						translateProccessX((centerPt.x - lastPinchData.centerPt.x) * inverseClientScale);
+						translateProccessY((centerPt.y - lastPinchData.centerPt.y) * inverseClientScale);
+						
+						// zoom from center point
+						translateProccessX(-((centerPt.x * inverseClientScale) / (previousScale / (clientScale - previousScale))));
+						translateProccessY(-((centerPt.y * inverseClientScale) / (previousScale / (clientScale - previousScale))));
+						
+						fullDraw();
+					}
+					
+					// Store the data to compare later
+					lastPinchData = {magnitude: vector.magnitude, centerPt: centerPt};
+				break;
+			}
 		};
 		
 		const deactivateDrawing = (event) => {
@@ -809,8 +870,10 @@
 			moving = false;
 			touchDrawing = false;
 
-			// Clear the lastPosition to signal the start for future drawing activations
+			// These data structures use null values to signify the first recorded position in the motion.
+			// Reset them to prevent old data messing with the new action.
 			lastPosition = {x: null, y: null};
+			lastPinchData = {magnitude: null, centerPt: null};
 		};
 		
 		const edgeInDrawing = (event) => {
@@ -861,14 +924,11 @@
 			// so save the previous scale for later use
 			let previousScale = clientScale;
 
+			// Mouse wheel motions are too imprecise to use so all scroll actions are flattened to 1 in either direction
 			if(event.deltaY < 0){
 				
 				// Update the scale
-				clientScale += zoomValue;
-				//clientScale = clientScale*2;
-				
-				// Update the inverse for the new scale
-				inverseClientScale = (1 / clientScale);
+				scaleProccess(zoomValue);
 
 				// Use this copy if a zoom cap is implemented
 				//translateProccessX(-(((canvas.width / 2) * inverseClientScale) / (previousScale / (clientScale - previousScale))));
@@ -884,15 +944,7 @@
 			else{
 				
 				// Update the scale
-				clientScale -= zoomValue;
-				
-				// Update the inverse for the new scale
-				inverseClientScale = (1 / clientScale);
-				
-				if (clientScale < 1){
-					clientScale = 1;
-					inverseClientScale = 1;
-				}
+				scaleProccess(-zoomValue);
 				
 				if(previousScale !== clientScale){
 					// Zoom out from mouse position
