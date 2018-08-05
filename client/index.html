@@ -845,15 +845,15 @@
 						let previousScale = clientScale;
 						
 						// Scale the scene in ratio to the pinch action
-						scaleProccess(vector.magnitude - lastPinchData.magnitude);
+						scaleProccess(((vector.magnitude - lastPinchData.magnitude) * clientScale) / 10);
 						
 						// Claculate the differences in center point positions and move that much weighted to the zoom scale
-						translateProccessX((centerPt.x - lastPinchData.centerPt.x) * inverseClientScale);
-						translateProccessY((centerPt.y - lastPinchData.centerPt.y) * inverseClientScale);
+						let posX = (centerPt.x - lastPinchData.centerPt.x) * inverseClientScale;
+						let posY = (centerPt.y - lastPinchData.centerPt.y) * inverseClientScale;
 						
-						// zoom from center point
-						translateProccessX(-((centerPt.x * inverseClientScale) / (previousScale / (clientScale - previousScale))));
-						translateProccessY(-((centerPt.y * inverseClientScale) / (previousScale / (clientScale - previousScale))));
+						// zoom from center point and add the panning movement before translating
+						translateProccessX(posX -((centerPt.x * inverseClientScale) / (previousScale / (clientScale - previousScale))));
+						translateProccessY(posY -((centerPt.y * inverseClientScale) / (previousScale / (clientScale - previousScale))));
 						
 						fullDraw();
 					}
