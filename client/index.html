@@ -32,13 +32,25 @@
 		// Flag for move action underway
 		let moving = false;
 		
+		// Signals that drawing should be delayed till the action is determined to
+		// actually be a drawing action
+		let delayDrawing = false;
+		
 		let pixelSize = 4;
 		let suggestedPixelSize;
 
 		let clientSandArray = [];
 
+		// Holds tiles to be sent to the server
 		let outGoingTilesDict = {};
+		// Holds tiles from the server to be applied to the scene
 		let incomingTilesDict = {};
+		// The program must wait a short time to determine if a touch event is a drawing action or a
+		// panning/zooming action so tiles formed in this time must be stored here until they are confirmed
+		// to be part of a drawing action.
+		let tempTilesDict = {};
+		// time given for touch action decisions
+		const tempTime = 70;
 		
 		let clientScale = 1;
 		let inverseClientScale = 1;
@@ -707,6 +719,13 @@
 			// Update the inverseClientScale
 			inverseClientScale = (1 / clientScale);
 		}
+		
+		
+		// If an action turns out to be non-drawing, call this method to cancel and clear the buffer
+		const stifleDelayedDrawing = () => {
+			delayDrawing = false;
+			tempTilesDict =  {};
+		}
 
 
 		// Check that the tile should be sent
@@ -719,11 +738,43 @@
 				// Proposal: make a continuously updated array that lets the tiles check if they are bordered
 				// by any tiles that are not the same as them.
 				
-				// Place the current pixel in the buffer
-				outGoingTilesDict[`${x},${y}`] = {x: x, y: y, type: tileType};
+				if(!delayDrawing){
+					// Place the current pixel in the buffer
+					outGoingTilesDict[`${x},${y}`] = {x: x, y: y, type: tileType};
+				}
+				else{
+					tempTilesDict[`${x},${y}`] = {x: x, y: y, type: tileType};
+					
+					// If more then given time has passed
+					if((Date.now() - delayDrawing) > tempTime){
+
+						delayDrawing = false;
+						
+						transferTempBuffer();
+					}
+				}
 			}
 		}
 
+		
+		// move tiles from tempTilesDict to outGoingTilesDict
+		const transferTempBuffer = () => {
+			// Move all tiles to the outGoingTilesDict
+			if(Object.keys(tempTilesDict).length > 0){
+
+				let changeListKeys = Object.keys(tempTilesDict);
+
+				for (let i = 0; i < changeListKeys.length; i++){
+
+					const tile = tempTilesDict[changeListKeys[i]];
+
+					outGoingTilesDict[changeListKeys[i]] = tempTilesDict[changeListKeys[i]];
+				}
+
+				// Reset tempTilesDict
+				tempTilesDict =  {};
+			}
+		}
 
 		// Draw particles at the last recorded position so static cursors still emit particles
 		// Note: At slow draw speeds,the positions wont change fast enough to detect movement
@@ -799,6 +850,7 @@
 			let positionY = getTilePositionY(event);
 
 			touchDrawing = true;
+			delayDrawing = Date.now();
 
 			// Jump start drawIdle
 			drawIdle();
@@ -827,6 +879,9 @@
 				case 2:
 					// Deactivate touchDrawing to stop idleDraw
 					touchDrawing = false;
+					
+					// Clear the built up tiles and reset the delay counter
+					stifleDelayedDrawing();
 
 					// Calculate the line between the two fingers
 					let vector = {x: ((event.touches[1].pageX - boundingClient.left) - (event.touches[0].pageX - boundingClient.left)),y: ((event.touches[1].pageY - boundingClient.top) - (event.touches[0].pageY - boundingClient.top))};
@@ -869,6 +924,19 @@
 			drawing = false;
 			moving = false;
 			touchDrawing = false;
+			
+			// If the time is under the tempTime range and the touch ended without
+			// being deactivated by the move case, its probably a quick tap and should
+			// be interpreted as a single pixel draw.
+			if(delayDrawing){
+				if((Date.now() - delayDrawing) < tempTime){
+					transferTempBuffer();
+				}
+			}
+			else{
+				// Clear the built up tiles and reset the delay counter
+				stifleDelayedDrawing();
+			}
 
 			// These data structures use null values to signify the first recorded position in the motion.
 			// Reset them to prevent old data messing with the new action.
