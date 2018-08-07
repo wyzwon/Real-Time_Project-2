@@ -665,7 +665,7 @@
 			if(unScaledclientXTranslate > 0){
 				unScaledclientXTranslate = 0;
 			}
-			// Dont bother checking the other wall if it's up against this one
+			// Don't bother checking the other wall if it's up against this one
 			else{
 				// Calculate the furthest the scene can be translated left (how far right the viewport can appear to move)
 				let furthestAllowedValue = -(canvas.width - (canvas.width / clientScale));
@@ -713,7 +713,11 @@
 			// cap the wide zoom at the scene size
 			if (clientScale < 1){
 				clientScale = 1;
-				inverseClientScale = 1;
+			}
+			
+			// cap the narrow zoom at a reasonable size size
+			if (clientScale > 45){
+				clientScale = 45;
 			}
 			
 			// Update the inverseClientScale
@@ -902,7 +906,7 @@
 						// Scale the scene in ratio to the pinch action
 						scaleProccess(((vector.magnitude - lastPinchData.magnitude) * clientScale) / 10);
 						
-						// Claculate the differences in center point positions and move that much weighted to the zoom scale
+						// Calculate the differences in center point positions and move that much weighted to the zoom scale
 						let posX = (centerPt.x - lastPinchData.centerPt.x) * inverseClientScale;
 						let posY = (centerPt.y - lastPinchData.centerPt.y) * inverseClientScale;
 						
@@ -995,33 +999,26 @@
 			// Mouse wheel motions are too imprecise to use so all scroll actions are flattened to 1 in either direction
 			if(event.deltaY < 0){
 				
-				// Update the scale
-				scaleProccess(zoomValue);
+				// Scale the scene at a visually linear rate
+				scaleProccess((zoomValue * clientScale) / 10);
 
-				// Use this copy if a zoom cap is implemented
-				//translateProccessX(-(((canvas.width / 2) * inverseClientScale) / (previousScale / (clientScale - previousScale))));
-				//translateProccessY(-(((canvas.height / 2) * inverseClientScale) / (previousScale / (clientScale - previousScale))));
-				
-				// Zoom from center
-				//translateProccessX(-(((canvas.width / 2) * inverseClientScale) / (previousScale / zoomValue)));
-				//translateProccessY(-(((canvas.height / 2) * inverseClientScale) / (previousScale / zoomValue)));
-				
-				translateProccessX(-((positionX * inverseClientScale) / (previousScale / zoomValue)));
-				translateProccessY(-((positionY * inverseClientScale) / (previousScale / zoomValue)));
+				if(previousScale !== clientScale){
+
+					// Move to maintain center point after scale
+					translateProccessX(-((positionX * inverseClientScale) / (previousScale / (clientScale - previousScale))));
+					translateProccessY(-((positionY * inverseClientScale) / (previousScale / (clientScale - previousScale))));
+				}
 			}
 			else{
-				
-				// Update the scale
-				scaleProccess(-zoomValue);
-				
+
+				// Scale the scene at a visually linear rate
+				scaleProccess(-((zoomValue * clientScale) / 10));
+
 				if(previousScale !== clientScale){
+
 					// Zoom out from mouse position
-					//translateProccessX(((canvas.width - positionX) * inverseClientScale) / (previousScale / (previousScale - clientScale)));
-					//translateProccessY(((canvas.height - positionY) * inverseClientScale) / (previousScale / (previousScale - clientScale)));
-					
-					// Zoom out from center of current view
-					translateProccessX(((canvas.width / 2) * inverseClientScale) / (previousScale / (previousScale - clientScale)));
-					translateProccessY(((canvas.height / 2) * inverseClientScale) / (previousScale / (previousScale - clientScale)));
+					translateProccessX(((positionX) * inverseClientScale) / (previousScale / (previousScale - clientScale)));
+					translateProccessY(((positionY) * inverseClientScale) / (previousScale / (previousScale - clientScale)));
 				}
 			}
 
