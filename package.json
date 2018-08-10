@@ -19,13 +19,13 @@
   },
   "homepage": "https://github.com/wyzwon/Real-Time_Project-2#readme",
   "devDependencies": {
-    "eslint": "^4.10.0",
+    "eslint": "^4.19.1",
     "eslint-config-airbnb": "^16.1.0",
-    "eslint-plugin-import": "^2.8.0"
+    "eslint-plugin-import": "^2.13.0"
   },
   "dependencies": {
-    "express": "^4.16.2",
-    "save": "^2.3.1",
-    "socket.io": "^2.0.4"
+    "express": "^4.16.3",
+    "save": "^2.3.2",
+    "socket.io": "^2.1.1"
   }
 }
