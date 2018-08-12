@@ -78,6 +78,10 @@
 		let sandArrayX = 0;
 		let sandArrayY = 0;
 		
+		// The length in pixels, of the unscaled tiles
+		let pixelHeight = 0;
+		let pixelWidth = 0;
+		
 		// value of change in zoom
 		let zoomValue = 1;
 			
@@ -172,15 +176,18 @@
 			socket.on('setUp', (data) => {
 				// Import the entire sandArray (specifically for first entering the room)
 				clientSandArray = data.value;
-				
+
 				sandArrayX = clientSandArray.length;
 				sandArrayY = clientSandArray[0].length;
-				
+
 				suggestedPixelSize = data.suggestedPixelSize;
 				if(suggestedPixelSize){
 					pixelSize = suggestedPixelSize;
 				}
-				
+
+				pixelWidth = sandArrayX * pixelSize;
+				pixelHeight = sandArrayY * pixelSize;
+
 				// Set the canvas size to match sandArray
 				canvas.width = (clientSandArray.length * pixelSize);
 				canvas.height = (clientSandArray[0].length * pixelSize);
@@ -539,7 +546,7 @@
 				drawColorSwitcher(clientSandArray[0][0]);
 				ctx.fillRect(0, 0, 0.5, 0.5);
 				drawColorSwitcher(clientSandArray[clientSandArray.length - 1][clientSandArray[0].length - 1]);
-				ctx.fillRect(canvas.width-0.5, canvas.height-0.5, 0.5, 0.5);
+				ctx.fillRect(pixelWidth-0.5, pixelHeight-0.5, 0.5, 0.5);
 
 				// Clear the incoming tile buffer
 				incomingTilesDict = {};
@@ -615,13 +622,13 @@
 
 		// Translate the x coordinate to tile coordinates adjusted to the current transform
 		const getTilePositionX = (event) => {
-			return Math.floor((((getPositionX(event) / canvas.width) * sandArrayX) * inverseClientScale) - (clientXTranslate / pixelSize) / clientScale);
+			return Math.floor((((getPositionX(event) / pixelWidth) * sandArrayX) * inverseClientScale) - (clientXTranslate / pixelSize) / clientScale);
 		}
 
 
 		// Translate the y coordinate to tile coordinates adjusted to the current transform
 		const getTilePositionY = (event) => {
-			return Math.floor((((getPositionY(event) / canvas.height) * sandArrayY) * inverseClientScale) - (clientYTranslate / pixelSize) / clientScale);
+			return Math.floor((((getPositionY(event) / pixelHeight) * sandArrayY) * inverseClientScale) - (clientYTranslate / pixelSize) / clientScale);
 		}
 
 
@@ -668,7 +675,7 @@
 			// Don't bother checking the other wall if it's up against this one
 			else{
 				// Calculate the furthest the scene can be translated left (how far right the viewport can appear to move)
-				let furthestAllowedValue = -(canvas.width - (canvas.width / clientScale));
+				let furthestAllowedValue = -(pixelWidth - (canvas.width / clientScale));
 
 				// Prevent movement off the right edge
 				if(unScaledclientXTranslate < furthestAllowedValue){
@@ -693,7 +700,7 @@
 			// Dont bother checking the other wall if it's up against this one
 			else{
 				// Calculate the furthest the scene can be translated up (how far down the viewport can appear to move)
-				let furthestAllowedValue = -(canvas.height - (canvas.height / clientScale));
+				let furthestAllowedValue = -(pixelHeight - (canvas.height / clientScale));
 
 				// Prevent movement off the bottom edge
 				if(unScaledclientYTranslate < furthestAllowedValue){
