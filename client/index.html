@@ -224,7 +224,7 @@
 				document.getElementById('randomCount').innerHTML = 0;
 				document.getElementById('randomProgress').value = 0;
 				
-				switch (data) {
+				switch(data) {
 				// Clear scene
 				case 1:
 					for (let i = 0; i < clientSandArray.length; i++) {
@@ -876,7 +876,7 @@
 		const moveTouchDrawing = (event) => {
 			event.preventDefault();
 			
-			switch (event.touches.length){
+			switch(event.touches.length){
 				case 1:
 					let positionX = getTilePositionX(event);
 					let positionY = getTilePositionY(event);
