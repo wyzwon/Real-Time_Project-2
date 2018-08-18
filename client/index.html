@@ -84,6 +84,12 @@
 		
 		// value of change in zoom
 		let zoomValue = 1;
+		
+		// Minimum zoom
+		let minZoom = 1;
+		
+		// Maximum zoom
+		let maxZoom = 45;
 			
 		// Currently selected particle type
 		let drawColor = parseInt(document.querySelector("#sandType").value);
@@ -718,13 +724,13 @@
 			clientScale += scale;
 			
 			// cap the wide zoom at the scene size
-			if (clientScale < 1){
-				clientScale = 1;
+			if (clientScale < minZoom){
+				clientScale = minZoom;
 			}
 			
 			// cap the narrow zoom at a reasonable size size
-			if (clientScale > 45){
-				clientScale = 45;
+			if (clientScale > maxZoom){
+				clientScale = maxZoom;
 			}
 			
 			// Update the inverseClientScale
