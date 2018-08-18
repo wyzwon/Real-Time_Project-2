@@ -197,6 +197,8 @@
 				// Set the canvas size to match sandArray
 				canvas.width = (clientSandArray.length * pixelSize);
 				canvas.height = (clientSandArray[0].length * pixelSize);
+				
+				calcMinScale();
 
 				fullDraw();
 			});
@@ -348,7 +350,37 @@
 
 				outGoingTilesDict = {};
 			}
-		}
+		};
+		
+		// Calculate the new minimum allowed scale and scale the canvas if necessary
+		const calcMinScale = () => {
+			
+			let xMinZoom = 1
+			let yMinZoom = 1
+			
+			// If canvas width is wide enough to require scaling
+			if(canvas.width > (clientSandArray.length * pixelSize)){
+				xMinZoom = canvas.width / (clientSandArray.length * pixelSize);
+			}
+			
+			// If canvas height is wide enough to require scaling
+			if(canvas.height > (clientSandArray[0].length * pixelSize)){
+				yMinZoom = canvas.height / (clientSandArray[0].length * pixelSize);
+			}
+			
+			// Determine which if either dimension needs more scaling and set that as the minimum
+			if(xMinZoom > yMinZoom){
+				minZoom = xMinZoom;
+			}
+			else if(yMinZoom > 1){
+				minZoom = yMinZoom;
+			}
+			
+			// If the old scale would be out of the new scales bounds, scale it.
+			if(clientScale < minZoom){
+				scaleSetProccess(minZoom);
+			}
+		};
 		
 		setInterval(() => {
 			sendTilesToServer();
@@ -738,6 +770,19 @@
 		}
 		
 		
+		// Set the scale to the given value if posible
+		const scaleSetProccess = (scale) => {
+			
+			// cap the wide zoom at the scene size
+			if ((scale >= minZoom) && (scale <= maxZoom)){
+				clientScale = scale;
+			}
+			
+			// Update the inverseClientScale
+			inverseClientScale = (1 / clientScale);
+		}
+
+
 		// If an action turns out to be non-drawing, call this method to cancel and clear the buffer
 		const stifleDelayedDrawing = () => {
 			delayDrawing = false;
