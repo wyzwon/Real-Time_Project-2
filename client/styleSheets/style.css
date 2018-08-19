@@ -1,13 +1,19 @@
 body{
 	background: #666666;
+	margin: 0;
+	border:0em solid #ffffff;
 }
 
 #canvas{
-	border:1px solid #555555;
 	touch-action: none;
 }
 
 progress{
-
 	width:4em;
+}
+
+#controls{
+	padding:5px 0px 0px 10px;
+	background: #9999bb;
+	margin: 0;
 }
