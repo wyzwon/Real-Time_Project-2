@@ -195,10 +195,11 @@
 				pixelHeight = sandArrayY * pixelSize;
 
 				// Set the canvas size to match sandArray
-				canvas.width = Math.floor(window.innerWidth) - getScrollBarWidth();
-				canvas.height = (clientSandArray[0].length * pixelSize);
+				canvas.width = window.innerWidth - getScrollBarWidth();
+				canvas.height = (window.innerHeight / 5) * 4;
 				
 				calcMinScale();
+				calcMaxScale();
 
 				fullDraw();
 			});
@@ -363,7 +364,7 @@
 				xMinZoom = canvas.width / (clientSandArray.length * pixelSize);
 			}
 			
-			// If canvas height is wide enough to require scaling
+			// If canvas height is tall enough to require scaling
 			if(canvas.height > (clientSandArray[0].length * pixelSize)){
 				yMinZoom = canvas.height / (clientSandArray[0].length * pixelSize);
 			}
@@ -372,13 +373,34 @@
 			if(xMinZoom > yMinZoom){
 				minZoom = xMinZoom;
 			}
-			else if(yMinZoom > 1){
+			else{
 				minZoom = yMinZoom;
 			}
 			
 			// If the old scale would be out of the new scales bounds, scale it.
 			if(clientScale < minZoom){
 				scaleSetProccess(minZoom);
+			}
+		};
+		
+		// Calculate the new maximum allowed scale and scale the canvas if necessary
+		// Max scale should not allow a zoom smaller than one tile width
+		const calcMaxScale = () => {
+		
+			let xMaxZoom = (canvas.width / pixelSize);
+			let yMaxZoom = (canvas.height / pixelSize);
+			
+			// Determine which dimension needs less scaling and set that as the minimum
+			if(xMaxZoom < yMaxZoom){
+				maxZoom = xMaxZoom;
+			}
+			else{
+				maxZoom = yMaxZoom;
+			}
+			
+			// If the old scale would be out of the new scales bounds, scale it.
+			if(clientScale > maxZoom){
+				scaleSetProccess(maxZoom);
 			}
 		};
 		
