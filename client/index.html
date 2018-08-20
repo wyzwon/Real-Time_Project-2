@@ -684,7 +684,8 @@
 		}
 
 
-		const moveDrawing = (event) => {
+		// React to mouse move event
+		const mouseMove = (event) => {
 			if(drawing){
 				event.preventDefault();
 
@@ -876,7 +877,8 @@
 		}
 
 
-		const activateDrawing = (event) => {
+		// React to mouse button click events
+		const mouseActivate = (event) => {
 
 			// Calculate the mouse position
 			let positionX = getTilePositionX(event);
@@ -916,7 +918,8 @@
 			}
 		};
 		
-		const activateTouchDrawing = (event) => {
+		// React to the activation of a touch event
+		const touchActivate = (event) => {
 			event.preventDefault();
 			
 			let positionX = getTilePositionX(event);
@@ -935,7 +938,8 @@
 			lastPosition = {x: positionX, y: positionY};
 		};
 		
-		const moveTouchDrawing = (event) => {
+		// React to a touch object move event
+		const touchMove = (event) => {
 			event.preventDefault();
 			
 			switch(event.touches.length){
@@ -992,10 +996,32 @@
 			}
 		};
 		
-		const deactivateDrawing = (event) => {
+		// Reset mouse behavior flags and variables
+		const mouseDeactivate = (event) => {
+			// Don't bring up the context menu if the user was moving
+			// because they were probably quick panning and went of canvas.
+			if(moving){
+				window.oncontextmenu = function() {
+					return false;
+				}
+			}
+			else{
+				window.oncontextmenu = function() {
+					return true;
+				}
+			}
+			
 			event.preventDefault();
 			drawing = false;
 			moving = false;
+
+			// This data structures uses null values to signify the first recorded position in the motion.
+			// Reset it to prevent old data messing with the new action.
+			lastPosition = {x: null, y: null};
+		};
+		
+		// Reset touch behavior flags and variables
+		const touchDeactivate = (event) => {
 			touchDrawing = false;
 			
 			// If the time is under the tempTime range and the touch ended without
@@ -1017,6 +1043,7 @@
 			lastPinchData = {magnitude: null, centerPt: null};
 		};
 		
+		// React to mouse entering viewport
 		const edgeInDrawing = (event) => {
 			if(drawing){
 				event.preventDefault();
@@ -1029,6 +1056,7 @@
 			}
 		};
 		
+		// React to mouse leaving the viewport
 		const edgeOutDrawing = (event) => {
 			if(drawing){
 				event.preventDefault();
@@ -1036,7 +1064,7 @@
 				let positionX = getTilePositionX(event);
 				let positionY = getTilePositionY(event);
 			
-				// draw a line between the mouse points
+				// Draw a line between the mouse points
 				lineCalculator(lastPosition.x, lastPosition.y, positionX, positionY);
 			}
 		};
@@ -1136,12 +1164,12 @@
 			};
 
 			connectSocket();
-			canvas.onmousemove = moveDrawing.bind(event);
-			canvas.ontouchmove = moveTouchDrawing.bind(event);
-			canvas.onmousedown = activateDrawing.bind(event);
-			window.onmouseup = deactivateDrawing.bind(event);
-			canvas.ontouchstart = activateTouchDrawing.bind(event);
-			canvas.ontouchend = deactivateDrawing.bind(event);
+			window.onmousemove = mouseMove.bind(event);
+			canvas.ontouchmove = touchMove.bind(event);
+			canvas.onmousedown = mouseActivate.bind(event);
+			window.onmouseup = mouseDeactivate.bind(event);
+			canvas.ontouchstart = touchActivate.bind(event);
+			canvas.ontouchend = touchDeactivate.bind(event);
 			canvas.onmouseout = edgeOutDrawing.bind(event);
 			canvas.onmouseover = edgeInDrawing.bind(event);
 			window.onfocus = focusRedraw.bind();
