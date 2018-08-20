@@ -35,9 +35,6 @@
 		// Signals that drawing should be delayed till the action is determined to
 		// actually be a drawing action
 		let delayDrawing = false;
-		
-		let pixelSize = 4;
-		let suggestedPixelSize;
 
 		let clientSandArray = [];
 
@@ -82,7 +79,7 @@
 		let pixelHeight = 0;
 		let pixelWidth = 0;
 		
-		// value of change in zoom
+		// value of change in zoom for wheel events
 		let zoomValue = 1;
 		
 		// Minimum zoom
@@ -181,18 +178,13 @@
 			
 			socket.on('setUp', (data) => {
 				// Import the entire sandArray (specifically for first entering the room)
-				clientSandArray = data.value;
+				clientSandArray = data;
 
 				sandArrayX = clientSandArray.length;
 				sandArrayY = clientSandArray[0].length;
 
-				suggestedPixelSize = data.suggestedPixelSize;
-				if(suggestedPixelSize){
-					pixelSize = suggestedPixelSize;
-				}
-
-				pixelWidth = sandArrayX * pixelSize;
-				pixelHeight = sandArrayY * pixelSize;
+				pixelWidth = sandArrayX;
+				pixelHeight = sandArrayY;
 
 				// Set the canvas size to match sandArray
 				canvas.width = window.innerWidth - getScrollBarWidth();
@@ -360,13 +352,13 @@
 			let yMinZoom = 1
 			
 			// If canvas width is wide enough to require scaling
-			if(canvas.width > (clientSandArray.length * pixelSize)){
-				xMinZoom = canvas.width / (clientSandArray.length * pixelSize);
+			if(canvas.width > clientSandArray.length){
+				xMinZoom = canvas.width / clientSandArray.length;
 			}
 			
 			// If canvas height is tall enough to require scaling
-			if(canvas.height > (clientSandArray[0].length * pixelSize)){
-				yMinZoom = canvas.height / (clientSandArray[0].length * pixelSize);
+			if(canvas.height > clientSandArray[0].length){
+				yMinZoom = canvas.height / clientSandArray[0].length;
 			}
 			
 			// Determine which if either dimension needs more scaling and set that as the minimum
@@ -387,8 +379,8 @@
 		// Max scale should not allow a zoom smaller than one tile width
 		const calcMaxScale = () => {
 		
-			let xMaxZoom = (canvas.width / pixelSize);
-			let yMaxZoom = (canvas.height / pixelSize);
+			let xMaxZoom = canvas.width;
+			let yMaxZoom = canvas.height;
 			
 			// Determine which dimension needs less scaling and set that as the minimum
 			if(xMaxZoom < yMaxZoom){
@@ -556,7 +548,7 @@
 
 					drawColorSwitcher(clientSandArray[lx][ly]);
 
-					ctx.fillRect(lx * pixelSize, ly * pixelSize, pixelSize, pixelSize);
+					ctx.fillRect(lx, ly, 1, 1);
 				}
 			}
 
@@ -596,7 +588,7 @@
 
 					drawColorSwitcher(tile.type);
 
-					ctx.fillRect(tile.x * pixelSize, tile.y * pixelSize, pixelSize, pixelSize);
+					ctx.fillRect(tile.x, tile.y, 1, 1);
 				}
 
 				// Force a draw over the entire scene to clear up artifacts
@@ -682,13 +674,13 @@
 
 		// Translate the x coordinate to tile coordinates adjusted to the current transform
 		const getTilePositionX = (event) => {
-			return Math.floor((((getPositionX(event) / pixelWidth) * sandArrayX) * inverseClientScale) - (clientXTranslate / pixelSize) / clientScale);
+			return Math.floor((((getPositionX(event) / pixelWidth) * sandArrayX) * inverseClientScale) - clientXTranslate / clientScale);
 		}
 
 
 		// Translate the y coordinate to tile coordinates adjusted to the current transform
 		const getTilePositionY = (event) => {
-			return Math.floor((((getPositionY(event) / pixelHeight) * sandArrayY) * inverseClientScale) - (clientYTranslate / pixelSize) / clientScale);
+			return Math.floor((((getPositionY(event) / pixelHeight) * sandArrayY) * inverseClientScale) - clientYTranslate / clientScale);
 		}
 
 
@@ -708,12 +700,12 @@
 			}
 			else if(moving){
 				// Calculate the mouse position
-				let positionX = (getPositionX(event) * inverseClientScale) - (clientXTranslate / pixelSize) / clientScale;
-				let positionY = (getPositionY(event) * inverseClientScale) - (clientYTranslate / pixelSize) / clientScale;
+				let positionX = getPositionX(event);
+				let positionY = getPositionY(event);
 				
-				// Add the amount moved to the translation value
-				translateProccessX(positionX - lastMovePosition.x);
-				translateProccessY(positionY - lastMovePosition.y);
+				// Add the amount moved (adjusted for scale) to the translation value
+				translateProccessX((positionX - lastMovePosition.x) * inverseClientScale);
+				translateProccessY((positionY - lastMovePosition.y) * inverseClientScale);
 				
 				fullDraw();
 
@@ -920,10 +912,7 @@
 				let positionX = getPositionX(event);
 				let positionY = getPositionY(event);
 
-				positionX = (positionX * inverseClientScale) - (clientXTranslate / pixelSize) / clientScale;
-				positionY = (positionY * inverseClientScale) - (clientYTranslate / pixelSize) / clientScale;
 				lastMovePosition = {x: positionX, y: positionY};
-				//lastMovePosition = {x: null, y: null};
 			}
 		};
 		

@@ -714,7 +714,7 @@ const onJoined = (sock) => {
     onPlayerCountUpdate();
 
     // Send the current map data to the new user along with the suggested size of pixels
-    socket.emit('setUp', { value: sandArray, suggestedPixelSize });
+    socket.emit('setUp', sandArray);
 
     // Tally the vote and broadcast the results so the new player gets the current stats
     sceneVoteTally();
