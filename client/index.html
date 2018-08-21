@@ -686,9 +686,8 @@
 
 		// React to mouse move event
 		const mouseMove = (event) => {
-			if(drawing){
-				event.preventDefault();
-
+			event.preventDefault();
+			if(drawing){	
 				// Calculate the mouse position
 				let positionX = getTilePositionX(event);
                 let positionY = getTilePositionY(event);
