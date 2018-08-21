@@ -72,12 +72,8 @@
 		});
 		
 		// Client copy of the scene lengths
-		let sandArrayX = 0;
-		let sandArrayY = 0;
-		
-		// The length in pixels, of the unscaled tiles
-		let pixelHeight = 0;
-		let pixelWidth = 0;
+		let sceneLengthX = 0;
+		let sceneLengthY = 0;
 		
 		// value of change in zoom for wheel events
 		let zoomValue = 1;
@@ -180,11 +176,8 @@
 				// Import the entire sandArray (specifically for first entering the room)
 				clientSandArray = data;
 
-				sandArrayX = clientSandArray.length;
-				sandArrayY = clientSandArray[0].length;
-
-				pixelWidth = sandArrayX;
-				pixelHeight = sandArrayY;
+				sceneLengthX = clientSandArray.length;
+				sceneLengthY = clientSandArray[0].length;
 
 				// Set the canvas size to match sandArray
 				canvas.width = window.innerWidth - getScrollBarWidth();
@@ -235,16 +228,16 @@
 					break;
 				// Sea floor scene
 				case 2:
-					let sandArrayX = clientSandArray.length;
-					let sandArrayY = clientSandArray[0].length;
+					let sceneLengthX = clientSandArray.length;
+					let sceneLengthY = clientSandArray[0].length;
 					
 					// Check if the dimensions are big enough to work
-					if((sandArrayY > 7) && (sandArrayX > 2)){
+					if((sceneLengthY > 7) && (sceneLengthX > 2)){
 						// Calculate where the sand water border should be
-						let borderRow = Math.floor((sandArrayY / 8) * 7);
+						let borderRow = Math.floor((sceneLengthY / 8) * 7);
 						// Calculate plant offset
-						let leftPlant = Math.floor(sandArrayX / 3);
-						let rightPlant = (sandArrayX - leftPlant);
+						let leftPlant = Math.floor(sceneLengthX / 3);
+						let rightPlant = (sceneLengthX - leftPlant);
 						// Preserve symmetry by adjusting for 0 index
 						leftPlant = (leftPlant - 1);
 						
@@ -402,7 +395,7 @@
 		
 		// Returns true if coordinates are in bounds
 		const inBounds = (x,y) => {
-			return(((x >= 0) && (x < sandArrayX)) && ((y >= 0) && (y < sandArrayY)));
+			return(((x >= 0) && (x < sceneLengthX)) && ((y >= 0) && (y < sceneLengthY)));
 		}
 		
 		// calculate a line between two mouse points and add them to the buffer with the current draw color
@@ -598,7 +591,7 @@
 				drawColorSwitcher(clientSandArray[0][0]);
 				ctx.fillRect(0, 0, 0.5, 0.5);
 				drawColorSwitcher(clientSandArray[clientSandArray.length - 1][clientSandArray[0].length - 1]);
-				ctx.fillRect(pixelWidth-0.5, pixelHeight-0.5, 0.5, 0.5);
+				ctx.fillRect(sceneLengthX-0.5, sceneLengthY-0.5, 0.5, 0.5);
 
 				// Clear the incoming tile buffer
 				incomingTilesDict = {};
@@ -674,13 +667,13 @@
 
 		// Translate the x coordinate to tile coordinates adjusted to the current transform
 		const getTilePositionX = (event) => {
-			return Math.floor((((getPositionX(event) / pixelWidth) * sandArrayX) * inverseClientScale) - clientXTranslate / clientScale);
+			return Math.floor((getPositionX(event) * inverseClientScale) - clientXTranslate / clientScale);
 		}
 
 
 		// Translate the y coordinate to tile coordinates adjusted to the current transform
 		const getTilePositionY = (event) => {
-			return Math.floor((((getPositionY(event) / pixelHeight) * sandArrayY) * inverseClientScale) - clientYTranslate / clientScale);
+			return Math.floor((getPositionY(event) * inverseClientScale) - clientYTranslate / clientScale);
 		}
 
 
@@ -727,7 +720,7 @@
 			// Don't bother checking the other wall if it's up against this one
 			else{
 				// Calculate the furthest the scene can be translated left (how far right the viewport can appear to move)
-				let furthestAllowedValue = -(pixelWidth - (canvas.width / clientScale));
+				let furthestAllowedValue = -(sceneLengthX - (canvas.width / clientScale));
 
 				// Prevent movement off the right edge
 				if(unScaledclientXTranslate < furthestAllowedValue){
@@ -752,7 +745,7 @@
 			// Dont bother checking the other wall if it's up against this one
 			else{
 				// Calculate the furthest the scene can be translated up (how far down the viewport can appear to move)
-				let furthestAllowedValue = -(pixelHeight - (canvas.height / clientScale));
+				let furthestAllowedValue = -(sceneLengthY - (canvas.height / clientScale));
 
 				// Prevent movement off the bottom edge
 				if(unScaledclientYTranslate < furthestAllowedValue){
