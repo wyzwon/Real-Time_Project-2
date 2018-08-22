@@ -103,14 +103,14 @@
 		// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/fill
 		if(!Math.sign){
 			Math.sign = function(x){return typeof x === 'number' ? x ? x < 0 ? -1 : 1 : x === x ? 0 : NaN : NaN;};
-		}
+		};
 		
 		// Object.assign is unsupported in IE so a custom version must be inserted
 		// credit for assign code:
 		// https://stackoverflow.com/questions/171251/how-can-i-merge-properties-of-two-javascript-objects-dynamically
 		if(!Object.assign){
 			Object.assign = function(obj1, obj2){for (let attrname in obj2) { obj1[attrname] = obj2[attrname]; }};
-		}
+		};
 		
 		// Array.fill is unsupported in IE so a custom version must be inserted
 		// credit for fill code (modified for ECMAScript 6):
@@ -158,7 +158,7 @@
 					return O;
 				}
 			});
-		}
+		};
 
 
 		const connectSocket = () => {
@@ -396,7 +396,7 @@
 		// Returns true if coordinates are in bounds
 		const inBounds = (x,y) => {
 			return(((x >= 0) && (x < sceneLengthX)) && ((y >= 0) && (y < sceneLengthY)));
-		}
+		};
 		
 		// calculate a line between two mouse points and add them to the buffer with the current draw color
 		const lineCalculator = (x0, y0, x1, y1) => {
@@ -526,7 +526,7 @@
 					// show error tiles in red
 					ctx.fillStyle = "#ff0000";
 			}
-		}
+		};
 		
 		const fullDraw = () => {
 			ctx.save();
@@ -638,7 +638,7 @@
 			}
 
 			return coordinateX - boundingClient.left;
-		}
+		};
 
 		// Returns the Y position of the mouse/touch at time of request
 		const getPositionY = (event) => {
@@ -662,19 +662,19 @@
 			}
 
 			return coordinateY - boundingClient.top;
-		}
+		};
 
 
 		// Translate the x coordinate to tile coordinates adjusted to the current transform
 		const getTilePositionX = (event) => {
 			return Math.floor((getPositionX(event) * inverseClientScale) - clientXTranslate / clientScale);
-		}
+		};
 
 
 		// Translate the y coordinate to tile coordinates adjusted to the current transform
 		const getTilePositionY = (event) => {
 			return Math.floor((getPositionY(event) * inverseClientScale) - clientYTranslate / clientScale);
-		}
+		};
 
 
 		// React to mouse move event
@@ -730,7 +730,7 @@
 
 			// Update the scaled translate
 			clientXTranslate = (unScaledclientXTranslate * clientScale);
-		}
+		};
 
 
 		// Set Y translation
@@ -755,7 +755,7 @@
 
 			// Update the scaled translate
 			clientYTranslate = (unScaledclientYTranslate * clientScale);
-		}
+		};
 		
 		
 		// Add value to scale, prevent cap overflow, and update the inverseClientScale
@@ -774,7 +774,7 @@
 			
 			// Update the inverseClientScale
 			inverseClientScale = (1 / clientScale);
-		}
+		};
 		
 		
 		// Set the scale to the given value if posible
@@ -787,14 +787,14 @@
 			
 			// Update the inverseClientScale
 			inverseClientScale = (1 / clientScale);
-		}
+		};
 
 
 		// If an action turns out to be non-drawing, call this method to cancel and clear the buffer
 		const stifleDelayedDrawing = () => {
 			delayDrawing = false;
 			tempTilesDict =  {};
-		}
+		};
 
 
 		// Check that the tile should be sent
@@ -823,7 +823,7 @@
 					}
 				}
 			}
-		}
+		};
 
 		
 		// move tiles from tempTilesDict to outGoingTilesDict
@@ -843,7 +843,7 @@
 				// Reset tempTilesDict
 				tempTilesDict =  {};
 			}
-		}
+		};
 
 		// Draw particles at the last recorded position so static cursors still emit particles
 		// Note: At slow draw speeds,the positions wont change fast enough to detect movement
@@ -866,7 +866,7 @@
 				// Since drawing is still active, renew the cycle.
 				requestAnimationFrame(drawIdle);
 			}
-		}
+		};
 
 
 		// React to mouse button click events
@@ -991,7 +991,7 @@
 		// Reset mouse behavior flags and variables
 		const mouseDeactivate = (event) => {
 			// Don't bring up the context menu if the user was moving
-			// because they were probably quick panning and went of canvas.
+			// because they were probably quick panning and went off canvas.
 			if(moving){
 				window.oncontextmenu = function() {
 					return false;
@@ -1142,7 +1142,7 @@
 			document.body.removeChild (outer);
 			
 			return (w1 - w2);
-		}
+		};
 		
 		const init = () => {
 			// Prevent default right click behavior
