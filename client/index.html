@@ -32,6 +32,9 @@
 		// Flag for move action underway
 		let moving = false;
 		
+		// Used to destinguish touch screen events from ptp 2-finger gestures
+		let touchActive = false;
+		
 		// Signals that drawing should be delayed till the action is determined to
 		// actually be a drawing action
 		let delayDrawing = false;
@@ -95,6 +98,10 @@
 		let lastIdlePosition = {x: null, y: null};
 		// Last positions of fingers in pinch action
 		let lastPinchData = {centerPt: null, magnitude: null};
+		// Last position of pointer events (ms ptp events)
+		let lastPointerPosition = {};
+		// Last known location of the mouse
+		let LastKnownMousePos = {};
 		
 		const boundingClient = canvas.getBoundingClientRect();
 		
@@ -625,6 +632,7 @@
 				case "mousedown":
 				case "mouseout":
 				case "mouseover":
+				case "mouseup":
 				case "wheel":
 					coordinateX = event.pageX;
 				break;
@@ -633,7 +641,7 @@
 					coordinateX = event.touches[0].pageX;
 				break;
 				default:
-					console.log("Warning: Unrecognized event type");
+					console.log("Warning: Unrecognized event type: " + event.type);
 					coordinateX = 200;
 			}
 
@@ -649,6 +657,7 @@
 				case "mousedown":
 				case "mouseout":
 				case "mouseover":
+				case "mouseup":
 				case "wheel":
 					coordinateY = event.pageY;
 				break;
@@ -657,7 +666,7 @@
 					coordinateY = event.touches[0].pageY;
 				break;
 				default:
-					console.log("Warning: Unrecognized event type");
+					console.log("Warning: Unrecognized event type: " + event.type);
 					coordinateY = 200;
 			}
 
@@ -704,6 +713,13 @@
 
 				// Set this point as the starting point for the next line segment
 				lastMovePosition = {x: positionX, y: positionY};
+			}
+			else{
+				// Calculate the mouse position
+				let positionX = getPositionX(event);
+				let positionY = getPositionY(event);
+				
+				LastKnownMousePos = {x: positionX, y: positionY};
 			}
 		};
 
@@ -918,6 +934,7 @@
 			let positionY = getTilePositionY(event);
 
 			touchDrawing = true;
+			touchActive = true;
 			delayDrawing = Date.now();
 
 			// Jump start drawIdle
@@ -1010,11 +1027,18 @@
 			// This data structures uses null values to signify the first recorded position in the motion.
 			// Reset it to prevent old data messing with the new action.
 			lastPosition = {x: null, y: null};
+			
+			// Calculate the mouse position
+			let positionX = getPositionX(event);
+			let positionY = getPositionY(event);
+			
+			LastKnownMousePos = {x: positionX, y: positionY};
 		};
 		
 		// Reset touch behavior flags and variables
 		const touchDeactivate = (event) => {
 			touchDrawing = false;
+			touchActive = false;
 			
 			// If the time is under the tempTime range and the touch ended without
 			// being deactivated by the move case, its probably a quick tap and should
@@ -1115,6 +1139,53 @@
 			fullDraw();
 		};
 		
+		// React to pointer activation
+		const pointerActivate = (event) => {
+			if(event.pointerType === "touch"){
+				lastPointerPosition = event.clientY;
+			}
+		};
+		
+		// React to pointer move events
+		const pointerMove = (event) => {
+			if(event.pointerType === "touch" && !touchActive){
+			
+				// Calculate the mouse position
+				let positionX = event.clientX;
+				let positionY = event.clientY;
+			
+				let previousScale = clientScale;
+						
+				// Scale the scene in ratio to the pinch action
+				//scaleProccess(((event.clientY - lastPointerPosition) * clientScale) / 10);
+				
+				// zoom from center point and add the panning movement before translating
+				//translateProccessX(posX -((centerPt.x * inverseClientScale) / (previousScale / (clientScale - previousScale))));
+				//translateProccessY(posY -((centerPt.y * inverseClientScale) / (previousScale / (clientScale - previousScale))));
+				
+				// Scale the scene at a visually linear rate
+				scaleProccess(((positionY - lastPointerPosition)/1000) * clientScale);
+
+				if(previousScale !== clientScale){
+
+					// Zoom out from mouse position
+					translateProccessX((LastKnownMousePos.x * inverseClientScale) / (previousScale / (previousScale - clientScale)));
+					translateProccessY((LastKnownMousePos.y * inverseClientScale) / (previousScale / (previousScale - clientScale)));
+				}
+				
+				fullDraw();
+				
+				lastPointerPosition = event.clientY;
+			}
+		};
+		
+		// React to pointer deactivation
+		const pointerDeactivate = (event) => {
+			if(event.pointerType === "touch"){
+				lastPointerPosition = {};
+			}
+		};
+		
 		// Code credit: Alexandre Gomes on his blog: http://www.alexandre-gomes.com/?p=115
 		// Modified for ECMAScript 6
 		// Returns the width of the scroll bar
@@ -1166,6 +1237,11 @@
 			canvas.onmouseover = edgeInDrawing.bind(event);
 			window.onfocus = focusRedraw.bind();
 			canvas.onwheel = wheel.bind(event);
+			canvas.onpointerdown = pointerActivate.bind(event);
+			canvas.onpointermove = pointerMove.bind(event);
+			canvas.onpointerup = pointerDeactivate.bind(event);
+			canvas.onpointercancel = pointerDeactivate.bind(event);
+			canvas.onpointerout = pointerDeactivate.bind(event);
 			
 			document.querySelector("#sandType").onchange = function(e){
 
