@@ -1038,7 +1038,11 @@
 		// Reset touch behavior flags and variables
 		const touchDeactivate = (event) => {
 			touchDrawing = false;
-			touchActive = false;
+			
+			// Only reset this variable when all touch points are gone
+			if(event.touches.length < 1){
+				touchActive = false;
+			}
 			
 			// If the time is under the tempTime range and the touch ended without
 			// being deactivated by the move case, its probably a quick tap and should
@@ -1155,13 +1159,6 @@
 				let positionY = event.clientY;
 			
 				let previousScale = clientScale;
-						
-				// Scale the scene in ratio to the pinch action
-				//scaleProccess(((event.clientY - lastPointerPosition) * clientScale) / 10);
-				
-				// zoom from center point and add the panning movement before translating
-				//translateProccessX(posX -((centerPt.x * inverseClientScale) / (previousScale / (clientScale - previousScale))));
-				//translateProccessY(posY -((centerPt.y * inverseClientScale) / (previousScale / (clientScale - previousScale))));
 				
 				// Scale the scene at a visually linear rate
 				scaleProccess(((positionY - lastPointerPosition)/1000) * clientScale);
