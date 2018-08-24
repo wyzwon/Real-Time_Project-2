@@ -1114,28 +1114,31 @@
 			let previousScale = clientScale;
 
 			// Mouse wheel motions are too imprecise to use so all scroll actions are flattened to 1 in either direction
-			if(event.deltaY < 0){
-				
-				// Scale the scene at a visually linear rate
-				scaleProccess((zoomValue * clientScale) / 10);
-
-				if(previousScale !== clientScale){
-
-					// Move to maintain center point after scale
-					translateProccessX(-((positionX * inverseClientScale) / (previousScale / (clientScale - previousScale))));
-					translateProccessY(-((positionY * inverseClientScale) / (previousScale / (clientScale - previousScale))));
+			if(event.deltaY !== 0){
+				if(event.deltaY < 0){
+					//console.log("Wheel positive: " + ((zoomValue * clientScale) / 10));
+					// Scale the scene at a visually linear rate
+					scaleProccess((zoomValue * clientScale) / 10);
+	
+					if(previousScale !== clientScale){
+	
+						// Move to maintain center point after scale
+						translateProccessX(-((positionX * inverseClientScale) / (previousScale / (clientScale - previousScale))));
+						translateProccessY(-((positionY * inverseClientScale) / (previousScale / (clientScale - previousScale))));
+					}
 				}
-			}
-			else{
-
-				// Scale the scene at a visually linear rate
-				scaleProccess(-((zoomValue * clientScale) / 10));
-
-				if(previousScale !== clientScale){
-
-					// Zoom out from mouse position
-					translateProccessX(((positionX) * inverseClientScale) / (previousScale / (previousScale - clientScale)));
-					translateProccessY(((positionY) * inverseClientScale) / (previousScale / (previousScale - clientScale)));
+				else{
+	
+					// Scale the scene at a visually linear rate
+					scaleProccess(-((zoomValue * clientScale) / 10));
+	
+					//console.log("Wheel negative: " + ((zoomValue * clientScale) / 10));
+					if(previousScale !== clientScale){
+	
+						// Zoom out from mouse position
+						translateProccessX(((positionX) * inverseClientScale) / (previousScale / (previousScale - clientScale)));
+						translateProccessY(((positionY) * inverseClientScale) / (previousScale / (previousScale - clientScale)));
+					}
 				}
 			}
 
