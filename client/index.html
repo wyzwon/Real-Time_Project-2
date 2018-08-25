@@ -722,6 +722,13 @@
 			// Update the unscaled translate
 			unScaledclientXTranslate += xShift;
 
+			postProcessX();
+		};
+		
+		
+		// Check the boundaries and shift the viewport if needed
+		// and update scaled translate
+		const postProcessX = () => {
 			// Prevent movement off the left edge
 			if(unScaledclientXTranslate > 0){
 				unScaledclientXTranslate = 0;
@@ -747,6 +754,13 @@
 			// Update the unscaled translate
 			unScaledclientYTranslate += yShift;
 
+			postProcessY();
+		};
+		
+		
+		// Check the boundaries and shift the viewport if needed
+		// and update scaled translate
+		const postProcessY = () => {
 			// Prevent movement off the top edge
 			if(unScaledclientYTranslate > 0){
 				unScaledclientYTranslate = 0;
@@ -1216,9 +1230,12 @@
 			
 			calcMinScale();
 			calcMaxScale();
+			
+			postProcessX();
+			postProcessY();
 
 			fullDraw();
-		}
+		};
 		
 		const init = () => {
 			// Prevent default right click behavior
