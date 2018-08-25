@@ -185,15 +185,8 @@
 
 				sceneLengthX = clientSandArray.length;
 				sceneLengthY = clientSandArray[0].length;
-
-				// Set the canvas size to match sandArray
-				canvas.width = window.innerWidth - getScrollBarWidth();
-				canvas.height = (window.innerHeight / 5) * 4;
 				
-				calcMinScale();
-				calcMaxScale();
-
-				fullDraw();
+				resizeCanvas();
 			});
 
 
@@ -1215,6 +1208,18 @@
 			return (w1 - w2);
 		};
 		
+		// Resize canvas to current window size
+		const resizeCanvas = () => {
+			// Set the canvas size to match sandArray
+			canvas.width = window.innerWidth - getScrollBarWidth();
+			canvas.height = (window.innerHeight / 5) * 4;
+			
+			calcMinScale();
+			calcMaxScale();
+
+			fullDraw();
+		}
+		
 		const init = () => {
 			// Prevent default right click behavior
 			canvas.oncontextmenu = function() {
@@ -1242,6 +1247,7 @@
 			canvas.onpointerup = pointerDeactivate.bind(event);
 			canvas.onpointercancel = pointerDeactivate.bind(event);
 			canvas.onpointerout = pointerDeactivate.bind(event);
+			window.onresize = resizeCanvas.bind(event);
 			
 			document.querySelector("#sandType").onchange = function(e){
 
