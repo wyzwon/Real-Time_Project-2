@@ -1009,6 +1009,13 @@
 					// Store the data to compare later
 					lastPinchData = {magnitude: vector.magnitude, centerPt: centerPt};
 				break;
+				default:
+					// Deactivate touchDrawing to stop idleDraw
+					touchDrawing = false;
+					
+					// Clear the built up tiles and reset the delay counter
+					stifleDelayedDrawing();
+				break;
 			}
 		};
 		
