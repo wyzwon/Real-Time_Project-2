@@ -81,6 +81,12 @@
 		// value of change in zoom for wheel events
 		let zoomValue = 1;
 		
+		// Width of the unscaled Scene border
+		const unscaledBorderWidth = 7;
+		
+		// Width of the scene border
+		let borderWidth = 5;
+		
 		// Minimum zoom
 		let minZoom = 1;
 		
@@ -730,13 +736,13 @@
 		// and update scaled translate
 		const postProcessX = () => {
 			// Prevent movement off the left edge
-			if(unScaledclientXTranslate > 0){
-				unScaledclientXTranslate = 0;
+			if(unScaledclientXTranslate > borderWidth){
+				unScaledclientXTranslate = borderWidth;
 			}
 			// Don't bother checking the other wall if it's up against this one
 			else{
 				// Calculate the furthest the scene can be translated left (how far right the viewport can appear to move)
-				let furthestAllowedValue = -(sceneLengthX - (canvas.width / clientScale));
+				let furthestAllowedValue = -(sceneLengthX - (canvas.width / clientScale) + borderWidth);
 
 				// Prevent movement off the right edge
 				if(unScaledclientXTranslate < furthestAllowedValue){
@@ -762,13 +768,13 @@
 		// and update scaled translate
 		const postProcessY = () => {
 			// Prevent movement off the top edge
-			if(unScaledclientYTranslate > 0){
-				unScaledclientYTranslate = 0;
+			if(unScaledclientYTranslate > borderWidth){
+				unScaledclientYTranslate = borderWidth;
 			}
 			// Dont bother checking the other wall if it's up against this one
 			else{
 				// Calculate the furthest the scene can be translated up (how far down the viewport can appear to move)
-				let furthestAllowedValue = -(sceneLengthY - (canvas.height / clientScale));
+				let furthestAllowedValue = -(sceneLengthY - (canvas.height / clientScale) + borderWidth);
 
 				// Prevent movement off the bottom edge
 				if(unScaledclientYTranslate < furthestAllowedValue){
@@ -797,6 +803,9 @@
 			
 			// Update the inverseClientScale
 			inverseClientScale = (1 / clientScale);
+			
+			// Compute the border width under this scale
+			borderWidth = (unscaledBorderWidth * inverseClientScale);
 		};
 		
 		
@@ -810,6 +819,9 @@
 			
 			// Update the inverseClientScale
 			inverseClientScale = (1 / clientScale);
+			
+			// Compute the border width under this scale
+			borderWidth = (unscaledBorderWidth * inverseClientScale);
 		};
 
 
